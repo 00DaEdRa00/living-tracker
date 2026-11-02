@@ -4,7 +4,7 @@
 
 export type ToneMode = 'neutral' | 'ironic' | 'sassy';
 
-export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald' | 'synthwave' | 'nord' | 'dracula' | 'tokyo' | 'crimson';
+export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald' | 'synthwave' | 'nord' | 'dracula' | 'tokyo' | 'crimson' | 'matrix';
 
 export type TransactionType = 'expense' | 'income';
 
@@ -122,6 +122,9 @@ export interface TrackerState {
   tone: ToneMode;
   theme: AppTheme;
   soundEnabled: boolean;
+  soundVolume: number; // 0.0 to 1.0 (defaults to 0.7)
+  freezeShields: number; // Burnout protection shields bank
+  focusMinutesSpent: number; // Pomodoro / deep work minutes
   catClicks: number;
   priceClicks: number;
   unlockedAchievements: Record<string, string>; // achievement ID -> unlock ISO date
@@ -141,6 +144,9 @@ export interface TrackerActions {
   setTheme: (theme: AppTheme) => void;
   toggleSound: () => void;
   setSoundEnabled: (enabled: boolean) => void;
+  setSoundVolume: (volume: number) => void;
+  addFreezeShield: (count?: number) => void;
+  recordFocusSession: (minutes: number, taskId?: string) => void;
   closeAchievementModal: () => void;
   openAchievementModal: (achievementOrId: string | Achievement) => void;
   

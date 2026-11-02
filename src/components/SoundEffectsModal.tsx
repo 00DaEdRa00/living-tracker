@@ -20,7 +20,9 @@ interface SoundEffectsModalProps {
 
 export const SoundEffectsModal: React.FC<SoundEffectsModalProps> = ({ isOpen, onClose }) => {
   const soundEnabled = useTrackerStore((state) => state.soundEnabled);
+  const soundVolume = useTrackerStore((state) => state.soundVolume ?? 0.7);
   const toggleSound = useTrackerStore((state) => state.toggleSound);
+  const setSoundVolume = useTrackerStore((state) => state.setSoundVolume);
 
   if (!isOpen) return null;
 
@@ -71,35 +73,57 @@ export const SoundEffectsModal: React.FC<SoundEffectsModalProps> = ({ isOpen, on
             </button>
           </div>
 
-          {/* Master Sound Switch */}
-          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-surface border border-surface-border mb-4">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-xl ${soundEnabled ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
-                {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-              </div>
-              <div>
-                <div className="text-xs font-bold text-white">
-                  {soundEnabled ? 'Звуковые эффекты активны' : 'Звук полностью отключен'}
+          {/* Master Sound Switch & Volume Slider */}
+          <div className="p-3.5 rounded-2xl bg-surface border border-surface-border mb-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl ${soundEnabled ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                  {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
                 </div>
-                <div className="text-[11px] text-slate-400">
-                  {soundEnabled ? 'Воспроизведение при действиях и стриках' : 'Тихий режим без аудиосигналов'}
+                <div>
+                  <div className="text-xs font-bold text-white">
+                    {soundEnabled ? 'Звуковые эффекты активны' : 'Звук полностью отключен'}
+                  </div>
+                  <div className="text-[11px] text-slate-400">
+                    {soundEnabled ? 'Воспроизведение при действиях и стриках' : 'Тихий режим без аудиосигналов'}
+                  </div>
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  toggleSound();
+                  playClickSound();
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                  soundEnabled
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                    : 'bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30'
+                }`}
+              >
+                {soundEnabled ? 'Выключить' : 'Включить'}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                toggleSound();
-                playClickSound();
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                soundEnabled
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
-                  : 'bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30'
-              }`}
-            >
-              {soundEnabled ? 'Выключить' : 'Включить'}
-            </button>
+
+            {/* Volume Control Slider */}
+            <div className="pt-2 border-t border-surface-border/60 flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2 text-slate-400">
+                <Sliders className="w-3.5 h-3.5 text-accent" />
+                <span>Громкость:</span>
+                <span className="font-mono font-bold text-white">
+                  {Math.round(soundVolume * 100)}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={soundVolume}
+                onChange={(e) => setSoundVolume(parseFloat(e.target.value))}
+                className="w-48 accent-sky-400 cursor-pointer h-1.5 bg-slate-700 rounded-lg"
+              />
+            </div>
           </div>
 
           {/* Sound catalog grid */}

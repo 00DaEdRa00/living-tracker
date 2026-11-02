@@ -40,6 +40,18 @@ function canPlaySound(): boolean {
 }
 
 /**
+ * Получить коэффициент громкости (0.0 .. 1.0)
+ */
+export function getMasterVolume(): number {
+  try {
+    const vol = useTrackerStore.getState().soundVolume;
+    return typeof vol === 'number' && !isNaN(vol) ? Math.max(0, Math.min(1, vol)) : 0.7;
+  } catch {
+    return 0.7;
+  }
+}
+
+/**
  * 1. playCoinSound() — звон монет при добавлении транзакции (два синусоидальных тона с затуханием)
  */
 export function playCoinSound(): void {
@@ -833,6 +845,7 @@ export function playTimerCompleteSound(): void {
 
   try {
     const now = ctx.currentTime;
+    const vol = getMasterVolume();
     const chimes = [
       { freq: 880, delay: 0.0 },
       { freq: 1318.51, delay: 0.15 },
@@ -846,7 +859,7 @@ export function playTimerCompleteSound(): void {
       osc.frequency.setValueAtTime(freq, now + delay);
 
       gain.gain.setValueAtTime(0.001, now + delay);
-      gain.gain.linearRampToValueAtTime(0.25, now + delay + 0.02);
+      gain.gain.linearRampToValueAtTime(0.25 * vol, now + delay + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + delay + 0.6);
 
       osc.connect(gain);
@@ -857,6 +870,133 @@ export function playTimerCompleteSound(): void {
     });
   } catch (err) {
     console.warn('Audio playTimerCompleteSound error:', err);
+  }
+}
+
+/**
+ * 24. playPomodoroTickSound() — мягкий тактильный тик таймера фокуса
+ */
+export function playPomodoroTickSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const vol = getMasterVolume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1200, now);
+
+    gain.gain.setValueAtTime(0.08 * vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.05);
+  } catch (err) {
+    console.warn('Audio playPomodoroTickSound error:', err);
+  }
+}
+
+/**
+ * 25. playFreezeShieldEarnedSound() — хрустальный перезвон получения щита от выгорания
+ */
+export function playFreezeShieldEarnedSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const vol = getMasterVolume();
+    const freqs = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+    freqs.forEach((freq, idx) => {
+      const delay = idx * 0.08;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + delay);
+
+      gain.gain.setValueAtTime(0.001, now + delay);
+      gain.gain.linearRampToValueAtTime(0.2 * vol, now + delay + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + delay + 0.4);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + delay);
+      osc.stop(now + delay + 0.45);
+    });
+  } catch (err) {
+    console.warn('Audio playFreezeShieldEarnedSound error:', err);
+  }
+}
+
+/**
+ * 26. playLaserSound() — футуристический лазерный импульс
+ */
+export function playLaserSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const vol = getMasterVolume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(1400, now);
+    osc.frequency.exponentialRampToValueAtTime(150, now + 0.18);
+
+    gain.gain.setValueAtTime(0.18 * vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.19);
+  } catch (err) {
+    console.warn('Audio playLaserSound error:', err);
+  }
+}
+
+/**
+ * 27. playCyberpunkAlertSound() — неоновый сигнал тревоги киберпанк
+ */
+export function playCyberpunkAlertSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const vol = getMasterVolume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(600, now);
+    osc.frequency.setValueAtTime(850, now + 0.08);
+
+    gain.gain.setValueAtTime(0.12 * vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.23);
+  } catch (err) {
+    console.warn('Audio playCyberpunkAlertSound error:', err);
   }
 }
 
@@ -878,10 +1018,14 @@ export const SOUND_FX_CATALOG: SoundPreset[] = [
   { id: 'recurrence', name: 'Цикл повтора', description: 'Перенос повторяющейся задачи', icon: '🔁', play: playRecurrenceSound },
   { id: 'freeze', name: 'Заморозка стрика', description: 'Streak Freeze от выгорания', icon: '❄️', play: playStreakFreezeSound },
   { id: 'shield', name: 'Активация щита', description: 'Защита всех стриков на день', icon: '🛡️', play: playShieldSound },
+  { id: 'shield_earned', name: 'Получение щита', description: 'Награда за стрик 7+ дней', icon: '💎', play: playFreezeShieldEarnedSound },
   { id: 'milestone', name: 'Стрик-рекорд', description: 'Рубеж 7, 14, 21, 30 дней', icon: '⚡', play: playStreakMilestoneSound },
   { id: 'fanfare', name: 'Ачивка', description: 'Разблокировка трофея', icon: '🎺', play: playAchievementFanfare },
   { id: 'level_up', name: 'Повышение уровня', description: 'Новый ранг и победа', icon: '🏆', play: playLevelUpSound },
   { id: 'timer', name: 'Таймер Помодоро', description: 'Завершение фокус-раунда', icon: '⏱️', play: playTimerCompleteSound },
+  { id: 'tick', name: 'Тик фокуса', description: 'Тактильный стук таймера', icon: '⏳', play: playPomodoroTickSound },
+  { id: 'laser', name: 'Кибер-лазер', description: 'Мгновенное быстрое действие', icon: '⚡', play: playLaserSound },
+  { id: 'cyber', name: 'Cyber Alert', description: 'Неоновый кибер-сигнал', icon: '🚨', play: playCyberpunkAlertSound },
   { id: 'cat', name: 'Мяуканье кота', description: 'Клик по котику-талисману', icon: '🐱', play: playCatSound },
   { id: 'share', name: 'Шеринг карточки', description: 'Копирование или сохранение PNG', icon: '📤', play: playShareSound },
 ];

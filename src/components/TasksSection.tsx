@@ -35,9 +35,13 @@ import {
   playSubtaskSound,
   playSnoozeSound,
   playUploadSound,
+  playShareSound,
+  playPomodoroTickSound,
+  playTimerCompleteSound,
 } from '../lib/soundFx';
 import { sendDesktopNotification } from '../lib/tauriBridge';
 import { TaskShareModal } from './TaskShareModal';
+import { LifeBalanceShareModal } from './LifeBalanceShareModal';
 
 export interface LifeSphere {
   id: string;
@@ -247,6 +251,7 @@ export const TasksSection: React.FC = () => {
   const addSubtask = useTrackerStore((state) => state.addSubtask);
   const removeSubtask = useTrackerStore((state) => state.removeSubtask);
   const tone = useTrackerStore((state) => state.tone);
+  const recordFocusSession = useTrackerStore((state) => state.recordFocusSession);
 
   const [selectedSphere, setSelectedSphere] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed' | 'recurring'>('all');
@@ -259,9 +264,13 @@ export const TasksSection: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [inlineSubtaskText, setInlineSubtaskText] = useState<{ [taskId: string]: string }>({});
 
-  // Модалки шеринга и редактирования
+  // Модалки шеринга, баланса и фокуса
   const [sharingTask, setSharingTask] = useState<Task | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [isLifeBalanceShareOpen, setIsLifeBalanceShareOpen] = useState(false);
+  const [focusTask, setFocusTask] = useState<Task | null>(null);
+  const [focusSeconds, setFocusSeconds] = useState(25 * 60);
+  const [isFocusActive, setIsFocusActive] = useState(false);
 
   // Форма добавления задачи
   const [formTitle, setFormTitle] = useState('');
@@ -292,6 +301,46 @@ export const TasksSection: React.FC = () => {
     }, 30000);
     return () => clearInterval(timer);
   }, []);
+
+  // Таймер глубокого фокуса Pomodoro
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isFocusActive && focusSeconds > 0) {
+      interval = setInterval(() => {
+        setFocusSeconds((prev) => {
+          if (prev <= 1) {
+            setIsFocusActive(false);
+            playTimerCompleteSound();
+            if (focusTask) {
+              const spent = Math.max(5, Math.round(((focusTask.estimatedMinutes || 25) * 60 - 0) / 60));
+              recordFocusSession(spent, focusTask.id);
+            }
+            try {
+              confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+            } catch {
+              // safe
+            }
+            return 0;
+          }
+          if (prev % 60 === 0) {
+            playPomodoroTickSound();
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isFocusActive, focusSeconds, focusTask, recordFocusSession]);
+
+  const handleStartFocus = (task: Task) => {
+    playClickSound();
+    setFocusTask(task);
+    const mins = task.estimatedMinutes && task.estimatedMinutes > 0 ? task.estimatedMinutes : 25;
+    setFocusSeconds(mins * 60);
+    setIsFocusActive(true);
+  };
 
   const handleOpenEditModal = (task: Task) => {
     playClickSound();
@@ -599,6 +648,19 @@ export const TasksSection: React.FC = () => {
                   </div>
                 );
               })}
+
+              <button
+                type="button"
+                onClick={() => {
+                  playShareSound();
+                  setIsLifeBalanceShareOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent/20 hover:bg-accent/30 border border-accent/40 text-accent font-bold text-xs transition-all cursor-pointer shrink-0 ml-1"
+                title="Поделиться колесом жизненного баланса (Radar 1080p)"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span>Шеринг баланса</span>
+              </button>
             </div>
           </div>
         );
@@ -1222,6 +1284,18 @@ export const TasksSection: React.FC = () => {
                             <span>⏱️</span>
                             <span>{task.estimatedMinutes} мин</span>
                           </span>
+                        )}
+
+                        {/* Кнопка запуска таймера фокуса Pomodoro */}
+                        {!task.completed && (
+                          <button
+                            type="button"
+                            onClick={() => handleStartFocus(task)}
+                            title="Запустить Помодоро-фокус на задаче"
+                            className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-amber-400 rounded-lg hover:bg-surface transition-all cursor-pointer"
+                          >
+                            <Timer className="w-3.5 h-3.5" />
+                          </button>
                         )}
 
                         {/* Кнопка шеринга карточки */}
@@ -2074,6 +2148,117 @@ export const TasksSection: React.FC = () => {
             </motion.div>
           </div>
         )}
+
+        {/* Модальное окно глубокого фокуса Pomodoro */}
+        {focusTask && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative w-full max-w-md bg-surface-card border border-surface-border rounded-3xl p-6 shadow-2xl text-center overflow-hidden"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-surface-border mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                    <Timer className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-sm font-extrabold text-white">Режим глубокого фокуса</h3>
+                    <p className="text-[11px] text-slate-400">Pomodoro спринт без отвлечений</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsFocusActive(false);
+                    setFocusTask(null);
+                  }}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-surface transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Task info */}
+              <div className="p-3 rounded-2xl bg-surface border border-surface-border text-left mb-5 flex items-center gap-3">
+                <span className="text-2xl">{focusTask.icon || '🎯'}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-bold text-white truncate">{focusTask.title}</div>
+                  <div className="text-[10px] text-slate-400">{focusTask.category || 'Работа'}</div>
+                </div>
+              </div>
+
+              {/* Giant Countdown Clock */}
+              <div className="my-6">
+                <div className="text-6xl font-black font-mono tracking-tight text-white mb-2">
+                  {String(Math.floor(focusSeconds / 60)).padStart(2, '0')}:
+                  {String(focusSeconds % 60).padStart(2, '0')}
+                </div>
+                <div className="text-xs font-semibold text-slate-400 flex items-center justify-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${isFocusActive ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
+                  <span>{isFocusActive ? 'Фокус идет • Тик каждую минуту' : 'Таймер на паузе'}</span>
+                </div>
+              </div>
+
+              {/* Controls */}
+              <div className="flex items-center justify-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClickSound();
+                    setIsFocusActive(!isFocusActive);
+                  }}
+                  className={`px-5 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                    isFocusActive
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30'
+                      : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
+                  }`}
+                >
+                  {isFocusActive ? 'Пауза ⏸️' : 'Продолжить ▶️'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClickSound();
+                    const mins = focusTask.estimatedMinutes && focusTask.estimatedMinutes > 0 ? focusTask.estimatedMinutes : 25;
+                    setFocusSeconds(mins * 60);
+                  }}
+                  className="px-3.5 py-2.5 rounded-xl bg-surface hover:bg-slate-800 text-slate-300 text-xs font-bold border border-surface-border transition-colors cursor-pointer"
+                >
+                  Сброс 25м
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    toggleTask(focusTask.id);
+                    playTimerCompleteSound();
+                    const spent = Math.max(5, Math.round(((focusTask.estimatedMinutes || 25) * 60 - focusSeconds) / 60));
+                    recordFocusSession(spent, focusTask.id);
+                    setIsFocusActive(false);
+                    setFocusTask(null);
+                    try {
+                      confetti({ particleCount: 50, spread: 60 });
+                    } catch {
+                      // safe
+                    }
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-accent to-sky-500 text-slate-950 font-black text-xs shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+                >
+                  Закрыть задачу 🏆
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Модалка шеринга баланса сфер жизни */}
+        <LifeBalanceShareModal
+          isOpen={isLifeBalanceShareOpen}
+          onClose={() => setIsLifeBalanceShareOpen(false)}
+        />
       </AnimatePresence>
     </section>
   );

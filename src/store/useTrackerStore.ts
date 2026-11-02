@@ -311,6 +311,9 @@ export const useTrackerStore = create<TrackerStore>()(
         tone: 'sassy',
         theme: 'amoled',
         soundEnabled: true,
+        soundVolume: 0.7,
+        freezeShields: 3,
+        focusMinutesSpent: 0,
         catClicks: 0,
         priceClicks: 0,
         unlockedAchievements: {},
@@ -422,11 +425,12 @@ export const useTrackerStore = create<TrackerStore>()(
               habits: state.habits.map((h) =>
                 h.id === id ? { ...h, frozenDates: updated } : h
               ),
+              freezeShields: (state.freezeShields || 0) + 1,
             });
             return true;
           }
 
-          // Check monthly limit (max 2 freezes in calendar month)
+          // Check monthly limit (max 2 freezes in calendar month per habit)
           const freezesThisMonth = frozenDates.filter((d) => d.startsWith(currentMonth)).length;
           if (freezesThisMonth >= 2) {
             return false;
@@ -437,6 +441,7 @@ export const useTrackerStore = create<TrackerStore>()(
             habits: state.habits.map((h) =>
               h.id === id ? { ...h, frozenDates: updated } : h
             ),
+            freezeShields: Math.max(0, (state.freezeShields || 0) - 1),
           });
 
           const event: AppEvent = {
@@ -627,6 +632,22 @@ export const useTrackerStore = create<TrackerStore>()(
           setState({ soundEnabled });
         },
 
+        setSoundVolume: (soundVolume: number) => {
+          setState({ soundVolume: Math.max(0, Math.min(1, soundVolume)) });
+        },
+
+        addFreezeShield: (count = 1) => {
+          setState((state) => ({
+            freezeShields: Math.max(0, (state.freezeShields || 0) + count),
+          }));
+        },
+
+        recordFocusSession: (minutes: number, taskId?: string) => {
+          setState((state) => ({
+            focusMinutesSpent: (state.focusMinutesSpent || 0) + minutes,
+          }));
+        },
+
         closeAchievementModal: () => {
           setState({ recentUnlocked: null });
         },
@@ -789,6 +810,9 @@ export const useTrackerStore = create<TrackerStore>()(
             tone: 'sassy',
             theme: 'amoled',
             soundEnabled: true,
+            soundVolume: 0.7,
+            freezeShields: 3,
+            focusMinutesSpent: 0,
             catClicks: 0,
             priceClicks: 0,
             unlockedAchievements: {},

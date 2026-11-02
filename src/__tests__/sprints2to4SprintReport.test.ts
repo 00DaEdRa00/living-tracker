@@ -107,11 +107,11 @@ describe('Sprint 2-4 Advanced Enhancements Suite', () => {
     });
   });
 
-  describe('Sprint 4: Tauri 2.0 Desktop Bridge & SQLite v6', () => {
-    it('returns SQLite schema version 6 in database stats', async () => {
+  describe('Sprint 4: Tauri 2.0 Desktop Bridge & SQLite v7', () => {
+    it('returns SQLite schema version 7 in database stats', async () => {
       const stats = await getDatabaseStats();
       expect(stats).not.toBeNull();
-      expect(stats?.version).toBe(6);
+      expect(stats?.version).toBe(7);
     });
 
     it('provides database optimization command with safe fallback', async () => {

@@ -115,6 +115,23 @@ export async function getSqliteDb() {
     } catch {
       // Column already exists
     }
+    try {
+      await dbInstance.execute("ALTER TABLE habits ADD COLUMN freeze_shields_available INTEGER DEFAULT 3");
+    } catch {
+      // Column already exists
+    }
+    try {
+      await dbInstance.execute(`
+        CREATE TABLE IF NOT EXISTS focus_sessions (
+          id TEXT PRIMARY KEY,
+          task_id TEXT,
+          duration_minutes INTEGER NOT NULL,
+          completed_at TEXT NOT NULL
+        )
+      `);
+    } catch {
+      // Table already exists
+    }
 
     return dbInstance;
   } catch (err) {

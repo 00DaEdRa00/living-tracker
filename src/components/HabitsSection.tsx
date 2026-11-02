@@ -145,6 +145,7 @@ export const HabitsSection: React.FC = () => {
   const deleteHabit = useTrackerStore((state) => state.deleteHabit);
   const openAchievementModal = useTrackerStore((state) => state.openAchievementModal);
   const tone = useTrackerStore((state) => state.tone);
+  const freezeShields = useTrackerStore((state) => state.freezeShields ?? 3);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
@@ -385,8 +386,8 @@ export const HabitsSection: React.FC = () => {
           <div>
             <span className="font-bold text-sky-300">Механика «Заморозка стрика» (Streak Freeze): </span>
             <span className="text-slate-300">
-              Если день пропущен по уважительной причине или отдыху, заморозка защищает стрик от сброса в 0.
-              Доступно <strong className="text-sky-300">до 2 заморозок в месяц</strong> на каждую привычку.
+              Если день пропущен, заморозка защищает стрик от сброса.
+              Доступно 2 заморозки в месяц + <strong className="text-sky-300">банк щитов: {freezeShields} 🛡️</strong> (+1 за каждые 7 дней стрика).
             </span>
           </div>
         </div>
@@ -841,18 +842,20 @@ export const HabitsSection: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleFreeze(habit.id)}
-                        disabled={freezesRemaining <= 0 && !isFrozenToday}
+                        disabled={freezesRemaining <= 0 && freezeShields <= 0 && !isFrozenToday}
                         title={
                           isFrozenToday
                             ? 'Нажмите, чтобы отменить сегодняшнюю заморозку'
+                            : freezesRemaining <= 0 && freezeShields <= 0
+                            ? 'Лимит заморозок исчерпан'
                             : freezesRemaining <= 0
-                            ? 'Лимит 2 заморозки в месяц исчерпан'
+                            ? `Использовать щит из банка (${freezeShields} доступно)`
                             : 'Защитить стрик от сброса при пропуске (до 2 раз в месяц)'
                         }
                         className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                           isFrozenToday
                             ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 hover:bg-cyan-500/30 shadow-md shadow-cyan-950/40'
-                            : freezesRemaining <= 0
+                            : freezesRemaining <= 0 && freezeShields <= 0
                             ? 'bg-slate-800/40 text-slate-500 border border-slate-800 cursor-not-allowed opacity-60'
                             : 'bg-surface hover:bg-slate-800 text-sky-400 border border-sky-500/30 hover:border-sky-500/60'
                         }`}
@@ -861,7 +864,9 @@ export const HabitsSection: React.FC = () => {
                         <span>
                           {isFrozenToday
                             ? 'Заморожено ❄️'
-                            : `Заморозка (${freezesRemaining}/2)`}
+                            : freezesRemaining > 0
+                            ? `Заморозка (${freezesRemaining}/2)`
+                            : `Щит 🛡️ (${freezeShields})`}
                         </span>
                       </button>
 

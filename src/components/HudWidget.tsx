@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Zap,
@@ -18,6 +18,7 @@ import {
   Cat,
   Plus,
   Snowflake,
+  Timer,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
@@ -34,6 +35,9 @@ import {
   playStreakFreezeSound,
   playCatSound,
   playAchievementFanfare,
+  playPomodoroTickSound,
+  playTimerCompleteSound,
+  playClickSound,
 } from '../lib/soundFx';
 
 interface HudWidgetProps {
@@ -43,11 +47,14 @@ interface HudWidgetProps {
 
 export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false }) => {
   const [alwaysOnTop, setAlwaysOnTopState] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'habits' | 'tasks' | 'expense'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'habits' | 'tasks' | 'focus' | 'expense'>('overview');
   const [hudNewTask, setHudNewTask] = useState('');
   const [quickAmount, setQuickAmount] = useState('');
   const [quickCategory, setQuickCategory] = useState('Еда');
   const [quickDesc, setQuickDesc] = useState('');
+  const [hudFocusSeconds, setHudFocusSeconds] = useState(25 * 60);
+  const [isHudFocusActive, setIsHudFocusActive] = useState(false);
+  const [hudFocusTaskId, setHudFocusTaskId] = useState('');
 
   // Zustand state
   const budget = useTrackerStore((state) => state.budget);
@@ -63,6 +70,41 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
   const addTransaction = useTrackerStore((state) => state.addTransaction);
   const clickCat = useTrackerStore((state) => state.clickCat);
   const tone = useTrackerStore((state) => state.tone);
+  const freezeShields = useTrackerStore((state) => state.freezeShields ?? 3);
+  const recordFocusSession = useTrackerStore((state) => state.recordFocusSession);
+
+  // HUD Pomodoro Timer Effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isHudFocusActive && hudFocusSeconds > 0) {
+      interval = setInterval(() => {
+        setHudFocusSeconds((prev) => {
+          if (prev <= 1) {
+            setIsHudFocusActive(false);
+            playTimerCompleteSound();
+            recordFocusSession(25, hudFocusTaskId || undefined);
+            try {
+              confetti({
+                particleCount: 35,
+                spread: 50,
+                origin: { y: 0.7 },
+              });
+            } catch {
+              // safe
+            }
+            return 0;
+          }
+          if (prev % 60 === 0) {
+            playPomodoroTickSound();
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isHudFocusActive, hudFocusSeconds, hudFocusTaskId, recordFocusSession]);
 
   // Budget calculations
   const spentPercent =
@@ -296,6 +338,17 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
           }`}
         >
           Задачи ({tasks.filter((t) => !t.completed).length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('focus')}
+          className={`flex-1 py-1 text-[11px] font-semibold rounded-lg transition-all ${
+            activeTab === 'focus'
+              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Фокус ⏱️
         </button>
         <button
           type="button"
@@ -616,6 +669,81 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
           </div>
         )}
 
+        {/* Quick Focus / Pomodoro Tab */}
+        {activeTab === 'focus' && (
+          <div className="space-y-3 p-1 text-center">
+            <div className="p-3.5 rounded-2xl bg-surface-card border border-surface-border">
+              <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase mb-2">
+                <span>Глубокий фокус</span>
+                <span className="text-emerald-400">Pomodoro 25м</span>
+              </div>
+
+              {/* Task Selector for Focus */}
+              <select
+                value={hudFocusTaskId}
+                onChange={(e) => setHudFocusTaskId(e.target.value)}
+                className="w-full px-2.5 py-1.5 rounded-xl bg-surface border border-surface-border text-white text-xs mb-3 focus:outline-none focus:border-emerald-400"
+              >
+                <option value="">🎯 Сфокусироваться без задачи</option>
+                {urgentTasks.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.icon || '📌'} {t.title}
+                  </option>
+                ))}
+              </select>
+
+              {/* Countdown Display */}
+              <div className="my-2 text-5xl font-black font-mono tracking-tight text-white">
+                {String(Math.floor(hudFocusSeconds / 60)).padStart(2, '0')}:
+                {String(hudFocusSeconds % 60).padStart(2, '0')}
+              </div>
+
+              <div className="text-[11px] text-slate-400 flex items-center justify-center gap-1.5 mb-3">
+                <span className={`w-2 h-2 rounded-full ${isHudFocusActive ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'}`} />
+                <span>{isHudFocusActive ? 'Сессия активна • Тик каждую минуту' : 'Готов к старту'}</span>
+              </div>
+
+              {/* Controls */}
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClickSound();
+                    setIsHudFocusActive(!isHudFocusActive);
+                  }}
+                  className={`flex-1 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                    isHudFocusActive
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30'
+                      : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
+                  }`}
+                >
+                  {isHudFocusActive ? 'Пауза ⏸️' : 'Старт фокуса ▶️'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClickSound();
+                    setHudFocusSeconds(25 * 60);
+                  }}
+                  className="px-3 py-2 rounded-xl bg-surface hover:bg-slate-800 text-slate-300 text-xs font-bold border border-surface-border transition-colors cursor-pointer"
+                >
+                  25м
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Freeze Shields Info */}
+            <div className="p-2.5 rounded-xl bg-surface/60 border border-surface-border text-left flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-sky-400" />
+                <span className="text-slate-300">Щиты от выгорания:</span>
+              </div>
+              <span className="font-extrabold text-sky-300">{freezeShields} 🛡️</span>
+            </div>
+          </div>
+        )}
+
         {/* Quick Expense Form Tab */}
         {activeTab === 'expense' && (
           <form onSubmit={handleQuickExpense} className="space-y-2.5 p-1 text-left">
@@ -701,7 +829,7 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
           </span>
           <div className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span>{isTauri() ? 'Tauri 2.0 • SQLite v6' : 'HUD Preview'}</span>
+            <span>{isTauri() ? 'Tauri 2.0 • SQLite v7' : 'HUD Preview • SQLite v7'}</span>
           </div>
         </div>
       </div>

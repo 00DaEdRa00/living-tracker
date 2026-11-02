@@ -83,6 +83,16 @@
   --color-accent-glow: 251 113 133;  /* #fb7185 Rose Glow */
 }
 
+[data-theme='matrix'],
+.theme-matrix {
+  --color-bg-app: 11 26 14;          /* #0b1a0e Deep Cyber Matrix Dark */
+  --color-bg-surface: 16 38 22;      /* #102616 */
+  --color-bg-card: 22 51 30;         /* #16331e */
+  --color-border-surface: 34 85 48;  /* #225530 */
+  --color-accent: 34 197 94;         /* #22c55e Hacker Matrix Neon Green */
+  --color-accent-glow: 74 222 128;   /* #4ade80 Matrix Glow */
+}
+
 @layer base {
   html,
   body {

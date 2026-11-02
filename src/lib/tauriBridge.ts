@@ -84,7 +84,7 @@ export async function getDatabaseStats(): Promise<DatabaseStats | null> {
       status: 'browser_fallback',
       storage: 'localStorage',
       db: 'in-memory/web',
-      version: 6,
+      version: 7,
     };
   }
   try {
@@ -92,6 +92,33 @@ export async function getDatabaseStats(): Promise<DatabaseStats | null> {
     return await invoke<DatabaseStats>('get_database_stats');
   } catch (err) {
     console.warn('[TauriBridge] Failed to get database stats:', err);
+    return null;
+  }
+}
+
+export interface SystemMetrics {
+  status: string;
+  memory_mb: number;
+  hud_active: boolean;
+  engine: string;
+  sqlite_version: number;
+}
+
+export async function getSystemMetrics(): Promise<SystemMetrics | null> {
+  if (!isTauri()) {
+    return {
+      status: 'healthy',
+      memory_mb: 42.5,
+      hud_active: true,
+      engine: 'browser-simulation',
+      sqlite_version: 7,
+    };
+  }
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    return await invoke<SystemMetrics>('get_system_metrics');
+  } catch (err) {
+    console.warn('[TauriBridge] Failed to get system metrics:', err);
     return null;
   }
 }

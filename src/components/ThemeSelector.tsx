@@ -78,6 +78,14 @@ const THEME_OPTIONS: ThemeOption[] = [
     accentColor: '#f43f5e',
     desc: 'Velvet Wine & Neon Scarlet (#150810)',
   },
+  {
+    id: 'matrix',
+    label: 'Matrix',
+    shortLabel: 'Matrix',
+    icon: '💻',
+    accentColor: '#22c55e',
+    desc: 'Hacker Neon Green & Cyber Matrix (#0b1a0e)',
+  },
 ];
 
 export const ThemeSelector: React.FC = () => {
