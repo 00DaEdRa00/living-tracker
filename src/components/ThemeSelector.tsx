@@ -38,6 +38,14 @@ const THEME_OPTIONS: ThemeOption[] = [
     accentColor: '#fbbf24',
     desc: 'Deep Emerald & Soft Gold (#061a14)',
   },
+  {
+    id: 'synthwave',
+    label: 'Synthwave',
+    shortLabel: 'Synth',
+    icon: '🌆',
+    accentColor: '#f43f5e',
+    desc: 'Retrowave Violet & Neon Pink (#180a28)',
+  },
 ];
 
 export const ThemeSelector: React.FC = () => {

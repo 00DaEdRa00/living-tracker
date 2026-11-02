@@ -17,12 +17,15 @@ import {
   Image as ImageIcon,
   ArrowUpDown,
   Search,
+  Edit3,
+  Share2,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
 import type { Task } from '../types/tracker';
 import { PluginSlotRenderer } from './PluginSlots';
-import { playTaskCompleteSound, playClickSound } from '../lib/soundFx';
+import { playTaskCompleteSound, playClickSound, playTrashSound, playEditSound } from '../lib/soundFx';
+import { TaskShareModal } from './TaskShareModal';
 
 export interface LifeSphere {
   id: string;
@@ -186,6 +189,7 @@ export const TasksSection: React.FC = () => {
   const addTask = useTrackerStore((state) => state.addTask);
   const updateTask = useTrackerStore((state) => state.updateTask);
   const deleteTask = useTrackerStore((state) => state.deleteTask);
+  const clearCompletedTasks = useTrackerStore((state) => state.clearCompletedTasks);
   const tone = useTrackerStore((state) => state.tone);
 
   const [selectedSphere, setSelectedSphere] = useState<string>('all');
@@ -196,6 +200,10 @@ export const TasksSection: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  // Модалки шеринга и редактирования
+  const [sharingTask, setSharingTask] = useState<Task | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+
   // Форма добавления задачи
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
@@ -205,6 +213,15 @@ export const TasksSection: React.FC = () => {
   const [formDueDate, setFormDueDate] = useState('');
   const [formImageUrl, setFormImageUrl] = useState('');
 
+  // Форма редактирования задачи
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editSphere, setEditSphere] = useState('Работа');
+  const [editIcon, setEditIcon] = useState('💻');
+  const [editPriority, setEditPriority] = useState<'low' | 'medium' | 'high'>('medium');
+  const [editDueDate, setEditDueDate] = useState('');
+  const [editImageUrl, setEditImageUrl] = useState('');
+
   // Обновление таймера каждую минуту
   useEffect(() => {
     const timer = setInterval(() => {
@@ -212,6 +229,43 @@ export const TasksSection: React.FC = () => {
     }, 30000);
     return () => clearInterval(timer);
   }, []);
+
+  const handleOpenEditModal = (task: Task) => {
+    playClickSound();
+    setEditingTask(task);
+    setEditTitle(task.title);
+    setEditDescription(task.description || '');
+    setEditSphere(task.category || 'Работа');
+    setEditIcon(task.icon || '💻');
+    setEditPriority(task.priority || 'medium');
+    setEditDueDate(task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : '');
+    setEditImageUrl(task.imageUrl || '');
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTask || !editTitle.trim()) return;
+
+    updateTask(editingTask.id, {
+      title: editTitle.trim(),
+      description: editDescription.trim() || undefined,
+      category: editSphere,
+      icon: editIcon,
+      priority: editPriority,
+      imageUrl: editImageUrl.trim() || undefined,
+      dueDate: editDueDate ? new Date(editDueDate).toISOString() : undefined,
+    });
+
+    playEditSound();
+    setEditingTask(null);
+  };
+
+  const handleClearCompleted = () => {
+    if (typeof window !== 'undefined' && window.confirm('Очистить все завершённые задачи?')) {
+      clearCompletedTasks();
+      playTrashSound();
+    }
+  };
 
   const handleToggle = (id: string, completed: boolean) => {
     if (!completed) {
@@ -472,6 +526,17 @@ export const TasksSection: React.FC = () => {
             >
               Завершённые ({completedCount})
             </button>
+            {completedCount > 0 && (
+              <button
+                type="button"
+                onClick={handleClearCompleted}
+                title="Очистить все завершённые задачи"
+                className="ml-2 flex items-center gap-1 px-2.5 py-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Очистить</span>
+              </button>
+            )}
           </div>
 
           {/* Сортировка */}
@@ -724,11 +789,38 @@ export const TasksSection: React.FC = () => {
                           </span>
                         )}
 
+                        {/* Кнопка шеринга карточки */}
                         <button
                           type="button"
-                          onClick={() => deleteTask(task.id)}
+                          onClick={() => {
+                            playClickSound();
+                            setSharingTask(task);
+                          }}
+                          title="Поделиться карточкой задачи"
+                          className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-accent rounded-lg hover:bg-surface transition-all cursor-pointer"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Кнопка редактирования */}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditModal(task)}
+                          title="Редактировать задачу"
+                          className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-sky-300 rounded-lg hover:bg-surface transition-all cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Кнопка удаления */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            deleteTask(task.id);
+                            playTrashSound();
+                          }}
                           title="Удалить задачу"
-                          className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-surface transition-all"
+                          className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-surface transition-all cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1121,6 +1213,158 @@ export const TasksSection: React.FC = () => {
                     className="w-full py-3 rounded-2xl bg-gradient-to-r from-accent to-sky-500 text-slate-950 font-bold text-sm shadow-xl shadow-accent/20 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
                   >
                     Поставить задачу
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Модалка шеринга карточки задачи */}
+        {sharingTask && (
+          <TaskShareModal
+            task={sharingTask}
+            onClose={() => setSharingTask(null)}
+          />
+        )}
+
+        {/* Модальное окно редактирования задачи */}
+        {editingTask && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative w-full max-w-lg bg-surface-card border border-surface-border rounded-3xl p-6 shadow-2xl my-8 text-left"
+            >
+              <div className="flex items-center justify-between pb-4 border-b border-surface-border mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-accent/20 border border-accent/40 text-accent">
+                    <Edit3 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white">Редактировать задачу</h3>
+                    <p className="text-xs text-slate-400">Обновите параметры или срок выполнения</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingTask(null)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-surface transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveEdit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Название цели / задачи *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-2xl bg-surface border border-surface-border text-white text-sm focus:outline-none focus:border-accent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Описание (опционально)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    className="w-full px-4 py-2 rounded-2xl bg-surface border border-surface-border text-white text-xs focus:outline-none focus:border-accent resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Сфера жизни
+                    </label>
+                    <select
+                      value={editSphere}
+                      onChange={(e) => setEditSphere(e.target.value)}
+                      className="w-full px-3 py-2 rounded-2xl bg-surface border border-surface-border text-white text-xs focus:outline-none focus:border-accent"
+                    >
+                      {LIFE_SPHERES.filter((s) => s.id !== 'all').map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.icon} {s.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Приоритет
+                    </label>
+                    <div className="grid grid-cols-3 gap-1">
+                      {(['low', 'medium', 'high'] as const).map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setEditPriority(p)}
+                          className={`py-1.5 text-xs font-bold rounded-xl border transition-all ${
+                            editPriority === p
+                              ? p === 'high'
+                                ? 'bg-rose-500/20 text-rose-300 border-rose-500/50 shadow-sm'
+                                : p === 'medium'
+                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm'
+                                : 'bg-surface text-slate-300 border-slate-600 shadow-sm'
+                              : 'bg-surface/50 border-surface-border text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {p === 'high' ? 'Высок' : p === 'medium' ? 'Средн' : 'Обычн'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Дедлайн (дата и время)
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={editDueDate}
+                    onChange={(e) => setEditDueDate(e.target.value)}
+                    className="w-full px-4 py-2 rounded-2xl bg-surface border border-surface-border text-white text-xs focus:outline-none focus:border-accent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Ссылка на картинку-обложку
+                  </label>
+                  <input
+                    type="url"
+                    value={editImageUrl}
+                    onChange={(e) => setEditImageUrl(e.target.value)}
+                    placeholder="https://images.unsplash.com/..."
+                    className="w-full px-4 py-2 rounded-2xl bg-surface border border-surface-border text-white text-xs focus:outline-none focus:border-accent"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingTask(null)}
+                    className="px-4 py-2.5 rounded-xl bg-surface hover:bg-slate-800 text-slate-300 font-bold text-xs border border-surface-border cursor-pointer"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-accent to-sky-500 text-slate-950 font-extrabold text-xs shadow-lg shadow-sky-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+                  >
+                    Сохранить изменения
                   </button>
                 </div>
               </form>

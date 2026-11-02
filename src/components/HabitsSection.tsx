@@ -16,11 +16,18 @@ import {
   Calendar,
   Info,
   Share2,
+  Edit3,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
 import type { Habit } from '../types/tracker';
-import { playHabitCheckSound, playStreakFreezeSound, playClickSound } from '../lib/soundFx';
+import {
+  playHabitCheckSound,
+  playStreakFreezeSound,
+  playClickSound,
+  playTrashSound,
+  playEditSound,
+} from '../lib/soundFx';
 import { HabitShareModal } from './HabitShareModal';
 
 export const HABIT_ICON_PRESETS = [
@@ -67,12 +74,15 @@ export const HabitsSection: React.FC = () => {
   const toggleHabit = useTrackerStore((state) => state.toggleHabit);
   const freezeHabit = useTrackerStore((state) => state.freezeHabit);
   const addHabit = useTrackerStore((state) => state.addHabit);
+  const updateHabit = useTrackerStore((state) => state.updateHabit);
   const deleteHabit = useTrackerStore((state) => state.deleteHabit);
   const openAchievementModal = useTrackerStore((state) => state.openAchievementModal);
   const tone = useTrackerStore((state) => state.tone);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [sharingHabit, setSharingHabit] = useState<Habit | null>(null);
+  const [heatmapDaysCount, setHeatmapDaysCount] = useState<28 | 56>(28);
   const [hoveredDay, setHoveredDay] = useState<{
     habitId: string;
     date: string;
@@ -85,9 +95,39 @@ export const HabitsSection: React.FC = () => {
   const [formCategory, setFormCategory] = useState('Здоровье/Спорт');
   const [formIcon, setFormIcon] = useState('💧');
 
+  // Форма редактирования привычки
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editCategory, setEditCategory] = useState('Здоровье/Спорт');
+  const [editIcon, setEditIcon] = useState('💧');
+
   const today = new Date().toISOString().split('T')[0];
   const currentMonth = today.slice(0, 7); // 'YYYY-MM'
-  const heatmapDays = getHeatmapDays(28);
+  const heatmapDays = getHeatmapDays(heatmapDaysCount);
+
+  const handleOpenEdit = (habit: Habit) => {
+    playClickSound();
+    setEditingHabit(habit);
+    setEditTitle(habit.title);
+    setEditDescription(habit.description || '');
+    setEditCategory(habit.category || 'Здоровье/Спорт');
+    setEditIcon(habit.icon || '💧');
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingHabit || !editTitle.trim()) return;
+
+    updateHabit(editingHabit.id, {
+      title: editTitle.trim(),
+      description: editDescription.trim() || undefined,
+      category: editCategory,
+      icon: editIcon,
+    });
+
+    playEditSound();
+    setEditingHabit(null);
+  };
 
   const handleToggle = (id: string, completedToday: boolean) => {
     if (!completedToday) {
@@ -305,15 +345,28 @@ export const HabitsSection: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Кнопка удаления */}
-                      <button
-                        type="button"
-                        onClick={() => deleteHabit(habit.id)}
-                        title="Удалить привычку"
-                        className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-500 hover:text-rose-400 rounded-xl hover:bg-surface transition-all"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {/* Действия карточки: Редактирование и Удаление */}
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(habit)}
+                          title="Редактировать привычку"
+                          className="p-1.5 text-slate-500 hover:text-sky-300 rounded-xl hover:bg-surface transition-all cursor-pointer"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            deleteHabit(habit.id);
+                            playTrashSound();
+                          }}
+                          title="Удалить привычку"
+                          className="p-1.5 text-slate-500 hover:text-rose-400 rounded-xl hover:bg-surface transition-all cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Счётчики стрика: Текущий стрик и Рекорд */}
@@ -355,13 +408,25 @@ export const HabitsSection: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Тепловая карта стабильности (Heatmap 28 дней) */}
+                    {/* Тепловая карта стабильности (Heatmap) */}
                     <div className="p-3.5 rounded-2xl bg-surface/60 border border-surface-border mb-4">
-                      <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 mb-2.5">
-                        <span className="flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-accent" />
-                          <span>История стабильности (4 недели)</span>
-                        </span>
+                      <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 mb-2.5 flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-accent" />
+                            <span>История стабильности ({heatmapDaysCount === 28 ? '4 недели' : '8 недель'})</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              playClickSound();
+                              setHeatmapDaysCount(heatmapDaysCount === 28 ? 56 : 28);
+                            }}
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-surface hover:bg-slate-800 text-slate-300 hover:text-accent border border-surface-border transition-colors cursor-pointer"
+                          >
+                            {heatmapDaysCount === 28 ? 'Показать 8 нед' : 'Показать 4 нед'}
+                          </button>
+                        </div>
                         <div className="flex items-center gap-2 text-[10px]">
                           <span className="flex items-center gap-1">
                             <span className="w-2 h-2 rounded bg-slate-800 border border-slate-700" />
@@ -616,6 +681,125 @@ export const HabitsSection: React.FC = () => {
           habit={sharingHabit}
           onClose={() => setSharingHabit(null)}
         />
+      )}
+
+      {/* Модальное окно редактирования привычки */}
+      {editingHabit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            className="relative w-full max-w-lg bg-surface-card border border-surface-border rounded-3xl p-6 shadow-2xl my-8 text-left"
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-surface-border mb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400">
+                  <Edit3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-white">Редактировать привычку</h3>
+                  <p className="text-xs text-slate-400">Измените название, сферу или иконку</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingHabit(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-surface transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Название привычки *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-2xl bg-surface border border-surface-border text-white text-sm focus:outline-none focus:border-accent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Мотивация или описание
+                </label>
+                <textarea
+                  rows={2}
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="w-full px-4 py-2 rounded-2xl bg-surface border border-surface-border text-white text-xs focus:outline-none focus:border-accent resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Категория
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {HABIT_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setEditCategory(cat)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                        editCategory === cat
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm'
+                          : 'bg-surface text-slate-400 border-surface-border hover:text-slate-200'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Иконка привычки
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {HABIT_ICON_PRESETS.map((preset) => (
+                    <button
+                      key={preset.icon}
+                      type="button"
+                      onClick={() => setEditIcon(preset.icon)}
+                      title={preset.label}
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg border transition-transform hover:scale-110 cursor-pointer ${
+                        editIcon === preset.icon
+                          ? 'bg-amber-500/20 border-amber-400 scale-110'
+                          : 'bg-surface border-surface-border'
+                      }`}
+                    >
+                      {preset.icon}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingHabit(null)}
+                  className="px-4 py-2.5 rounded-xl bg-surface hover:bg-slate-800 text-slate-300 font-bold text-xs border border-surface-border cursor-pointer"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 font-extrabold text-xs shadow-lg shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+                >
+                  Сохранить
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
       )}
     </section>
   );

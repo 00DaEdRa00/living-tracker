@@ -33,6 +33,16 @@
   --color-accent-glow: 245 158 11;   /* #f59e0b */
 }
 
+[data-theme='synthwave'],
+.theme-synthwave {
+  --color-bg-app: 24 10 40;          /* #180a28 Retrowave Deep Violet */
+  --color-bg-surface: 38 15 66;      /* #260f42 */
+  --color-bg-card: 55 20 92;         /* #37145c */
+  --color-border-surface: 105 32 168;/* #6920a8 */
+  --color-accent: 244 63 94;         /* #f43f5e Neon Pink */
+  --color-accent-glow: 236 72 153;   /* #ec4899 */
+}
+
 @layer base {
   html,
   body {

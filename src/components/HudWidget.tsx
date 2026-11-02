@@ -16,6 +16,7 @@ import {
   TrendingDown,
   AlertTriangle,
   Cat,
+  Plus,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
@@ -41,6 +42,7 @@ interface HudWidgetProps {
 export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false }) => {
   const [alwaysOnTop, setAlwaysOnTopState] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'habits' | 'tasks'>('overview');
+  const [hudNewTask, setHudNewTask] = useState('');
 
   // Zustand state
   const budget = useTrackerStore((state) => state.budget);
@@ -49,6 +51,7 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
   const catClicks = useTrackerStore((state) => state.catClicks);
   const toggleHabit = useTrackerStore((state) => state.toggleHabit);
   const toggleTask = useTrackerStore((state) => state.toggleTask);
+  const addTask = useTrackerStore((state) => state.addTask);
   const clickCat = useTrackerStore((state) => state.clickCat);
   const tone = useTrackerStore((state) => state.tone);
 
@@ -394,6 +397,38 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
 
         {activeTab === 'tasks' && (
           <div className="space-y-2">
+            {/* Быстрое добавление задачи прямо из виджета */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!hudNewTask.trim()) return;
+                addTask({
+                  title: hudNewTask.trim(),
+                  category: 'Работа',
+                  icon: '📌',
+                  priority: 'medium',
+                });
+                setHudNewTask('');
+                playCoinSound();
+              }}
+              className="flex items-center gap-1.5 p-1 bg-surface-card rounded-xl border border-surface-border focus-within:border-accent"
+            >
+              <input
+                type="text"
+                placeholder="+ Добавить быструю задачу..."
+                value={hudNewTask}
+                onChange={(e) => setHudNewTask(e.target.value)}
+                className="flex-1 bg-transparent px-2 py-1 text-xs text-white placeholder:text-slate-500 focus:outline-none"
+              />
+              <button
+                type="submit"
+                className="p-1 rounded-lg bg-accent/20 text-accent hover:bg-accent hover:text-slate-950 transition-colors cursor-pointer"
+                title="Добавить задачу"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              </button>
+            </form>
+
             {tasks.map((t) => (
               <div
                 key={t.id}

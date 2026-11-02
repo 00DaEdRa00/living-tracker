@@ -4,7 +4,7 @@
 
 export type ToneMode = 'neutral' | 'ironic' | 'sassy';
 
-export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald';
+export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald' | 'synthwave';
 
 export type TransactionType = 'expense' | 'income';
 
@@ -137,6 +137,7 @@ export interface TrackerActions {
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteHabit: (id: string) => void;
   deleteTask: (id: string) => void;
+  clearCompletedTasks: () => void;
   deleteTransaction: (id: string) => void;
   resetAll: () => void;
 }

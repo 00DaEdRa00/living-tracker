@@ -417,3 +417,69 @@ export function playShareSound(): void {
     console.warn('Audio playShareSound error:', err);
   }
 }
+
+/**
+ * 11. playTrashSound() — быстрый тактильный шум/свуш удаления элемента или очистки завершенных задач
+ */
+export function playTrashSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(280, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.09);
+
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.1);
+  } catch (err) {
+    console.warn('Audio playTrashSound error:', err);
+  }
+}
+
+/**
+ * 12. playEditSound() — мягкий приятный перезвон (D5 -> G5) при успешном редактировании и сохранении
+ */
+export function playEditSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const notes = [
+      { freq: 587.33, time: 0.0, dur: 0.09, vol: 0.18 }, // D5
+      { freq: 783.99, time: 0.05, dur: 0.18, vol: 0.22 }, // G5
+    ];
+
+    notes.forEach(({ freq, time, dur, vol }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + time);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.setValueAtTime(vol, now + time);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + time + dur);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + time);
+      osc.stop(now + time + dur + 0.01);
+    });
+  } catch (err) {
+    console.warn('Audio playEditSound error:', err);
+  }
+}

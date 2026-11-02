@@ -602,6 +602,12 @@ export const useTrackerStore = create<TrackerStore>()(
           }));
         },
 
+        clearCompletedTasks: () => {
+          setState((state) => ({
+            tasks: state.tasks.filter((t) => !t.completed),
+          }));
+        },
+
         deleteTransaction: (id) => {
           const state = getState();
           const target = state.transactions.find((tx) => tx.id === id);
