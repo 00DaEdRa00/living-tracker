@@ -43,8 +43,11 @@ interface HudWidgetProps {
 
 export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false }) => {
   const [alwaysOnTop, setAlwaysOnTopState] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'habits' | 'tasks'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'habits' | 'tasks' | 'expense'>('overview');
   const [hudNewTask, setHudNewTask] = useState('');
+  const [quickAmount, setQuickAmount] = useState('');
+  const [quickCategory, setQuickCategory] = useState('Еда');
+  const [quickDesc, setQuickDesc] = useState('');
 
   // Zustand state
   const budget = useTrackerStore((state) => state.budget);
@@ -55,7 +58,9 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
   const freezeHabit = useTrackerStore((state) => state.freezeHabit);
   const freezeAllHabitsToday = useTrackerStore((state) => state.freezeAllHabitsToday);
   const toggleTask = useTrackerStore((state) => state.toggleTask);
+  const advanceRecurringTask = useTrackerStore((state) => state.advanceRecurringTask);
   const addTask = useTrackerStore((state) => state.addTask);
+  const addTransaction = useTrackerStore((state) => state.addTransaction);
   const clickCat = useTrackerStore((state) => state.clickCat);
   const tone = useTrackerStore((state) => state.tone);
 
@@ -137,6 +142,46 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
       });
     } catch {
       // safe fallback
+    }
+  };
+
+  const handleQuickExpense = (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = parseFloat(quickAmount);
+    if (!val || val <= 0) return;
+
+    addTransaction({
+      amount: val,
+      category: quickCategory,
+      description: quickDesc.trim() || undefined,
+      type: 'expense',
+    });
+
+    playCoinSound();
+    setQuickAmount('');
+    setQuickDesc('');
+    try {
+      confetti({
+        particleCount: 25,
+        spread: 45,
+        origin: { y: 0.7 },
+        colors: ['#38bdf8', '#facc15', '#34d399'],
+      });
+    } catch {
+      // safe
+    }
+  };
+
+  const handleAdvanceRecurring = (taskId: string) => {
+    advanceRecurringTask(taskId);
+    try {
+      confetti({
+        particleCount: 30,
+        spread: 45,
+        origin: { y: 0.75 },
+      });
+    } catch {
+      // safe
     }
   };
 
@@ -251,6 +296,17 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
           }`}
         >
           Задачи ({tasks.filter((t) => !t.completed).length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('expense')}
+          className={`flex-1 py-1 text-[11px] font-semibold rounded-lg transition-all ${
+            activeTab === 'expense'
+              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          + Расход
         </button>
       </div>
 
@@ -530,6 +586,24 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
                         <span>Шаги: {t.checklist.filter((s) => s.completed).length}/{t.checklist.length}</span>
                       </div>
                     )}
+                    {t.recurrence && t.recurrence !== 'none' && (
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-[9px] font-bold px-1 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                          🔁 {t.recurrence === 'daily' ? 'День' : t.recurrence === 'weekly' ? 'Неделя' : 'Месяц'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAdvanceRecurring(t.id);
+                          }}
+                          title="Перенести на следующий цикл"
+                          className="text-[9px] font-bold text-accent hover:underline cursor-pointer"
+                        >
+                          След. цикл
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
                 {t.completed ? (
@@ -540,6 +614,69 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
               </div>
             ))}
           </div>
+        )}
+
+        {/* Quick Expense Form Tab */}
+        {activeTab === 'expense' && (
+          <form onSubmit={handleQuickExpense} className="space-y-2.5 p-1 text-left">
+            <div className="p-2.5 rounded-2xl bg-surface-card border border-surface-border">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                Сумма расхода (₽) *
+              </label>
+              <input
+                type="number"
+                step="any"
+                required
+                autoFocus
+                placeholder="Например: 350"
+                value={quickAmount}
+                onChange={(e) => setQuickAmount(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-surface border border-surface-border text-white text-base font-extrabold focus:outline-none focus:border-amber-400"
+              />
+            </div>
+
+            <div className="p-2.5 rounded-2xl bg-surface-card border border-surface-border">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                Категория
+              </label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {['Еда', 'Алкоголь', 'Спорт', 'ЖКХ', 'Транспорт', 'Другое'].map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setQuickCategory(cat)}
+                    className={`py-1 px-1.5 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer ${
+                      quickCategory === cat
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
+                        : 'bg-surface text-slate-400 border-surface-border hover:text-white'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-2.5 rounded-2xl bg-surface-card border border-surface-border">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                Заметка (опционально)
+              </label>
+              <input
+                type="text"
+                placeholder="Обед, кофе, такси..."
+                value={quickDesc}
+                onChange={(e) => setQuickDesc(e.target.value)}
+                className="w-full px-3 py-1.5 rounded-xl bg-surface border border-surface-border text-white text-xs focus:outline-none focus:border-amber-400"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 hover:scale-[1.01] active:scale-[0.98] transition-all cursor-pointer"
+            >
+              Записать расход 💸
+            </button>
+          </form>
         )}
       </div>
 
@@ -558,9 +695,14 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
         </button>
 
         {/* Desktop / Tauri Status */}
-        <div className="text-[10px] font-medium text-slate-400 flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-400" />
-          <span>{isTauri() ? 'Tauri 2.0 Native' : 'HUD Preview'}</span>
+        <div className="text-[10px] font-medium text-slate-400 flex items-center gap-2">
+          <span className="flex items-center gap-1 font-mono text-[9px] text-slate-500 bg-surface px-1.5 py-0.5 rounded border border-surface-border">
+            Ctrl+Space
+          </span>
+          <div className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            <span>{isTauri() ? 'Tauri 2.0 • SQLite v6' : 'HUD Preview'}</span>
+          </div>
         </div>
       </div>
     </div>

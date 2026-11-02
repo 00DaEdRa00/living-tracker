@@ -62,7 +62,7 @@ fn get_database_stats() -> Result<serde_json::Value, String> {
         "status": "connected",
         "storage": "sqlite",
         "db": "living_tracker.db",
-        "version": 5
+        "version": 6
     }))
 }
 
@@ -161,6 +161,16 @@ pub fn run() {
             summary_json TEXT NOT NULL DEFAULT '{}',
             created_at TEXT NOT NULL
         );",
+        kind: MigrationKind::Up,
+    },
+    Migration {
+        version: 6,
+        description: "add_recurrence_and_habit_targets",
+        sql: "
+            ALTER TABLE tasks ADD COLUMN recurrence TEXT DEFAULT 'none';
+            ALTER TABLE tasks ADD COLUMN estimated_minutes INTEGER DEFAULT 0;
+            ALTER TABLE habits ADD COLUMN target_days_per_week INTEGER DEFAULT 7;
+        ",
         kind: MigrationKind::Up,
     }];
 

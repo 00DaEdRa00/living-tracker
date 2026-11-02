@@ -4,7 +4,7 @@
 
 export type ToneMode = 'neutral' | 'ironic' | 'sassy';
 
-export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald' | 'synthwave' | 'nord' | 'dracula' | 'tokyo';
+export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald' | 'synthwave' | 'nord' | 'dracula' | 'tokyo' | 'crimson';
 
 export type TransactionType = 'expense' | 'income';
 
@@ -28,6 +28,7 @@ export interface Habit {
   completedToday: boolean;
   history: string[]; // ISO date strings ('YYYY-MM-DD')
   frozenDates?: string[]; // ISO date strings ('YYYY-MM-DD')
+  targetDaysPerWeek?: number; // 1 to 7 target frequency
   createdAt: string; // ISO date string
 }
 
@@ -36,6 +37,8 @@ export interface Subtask {
   title: string;
   completed: boolean;
 }
+
+export type TaskRecurrence = 'none' | 'daily' | 'weekly' | 'monthly';
 
 export interface Task {
   id: string;
@@ -50,6 +53,8 @@ export interface Task {
   icon?: string;
   imageUrl?: string;
   checklist?: Subtask[];
+  recurrence?: TaskRecurrence;
+  estimatedMinutes?: number;
 }
 
 export interface Budget {
@@ -92,6 +97,7 @@ export type AppEvent =
   | { type: 'HABIT_COMPLETED'; payload: { habitId: string; streak: number } }
   | { type: 'HABIT_FROZEN'; payload: { habitId: string; date: string } }
   | { type: 'TASK_COMPLETED'; payload: { taskId: string; daysPending: number } }
+  | { type: 'TASK_RECURRED'; payload: { taskId: string; nextDueDate?: string } }
   | { type: 'CAT_CLICKED'; payload: { totalClicks: number } }
   | { type: 'PRICE_CLICKED'; payload: { totalClicks: number } }
   | { type: 'PAGE_VIEWED'; payload: { page: string } };
@@ -128,6 +134,7 @@ export interface TrackerActions {
   freezeHabit: (id: string) => boolean;
   freezeAllHabitsToday: () => number;
   toggleTask: (id: string) => void;
+  advanceRecurringTask: (id: string) => void;
   clickCat: () => void;
   clickPrice: () => void;
   setTone: (tone: ToneMode) => void;

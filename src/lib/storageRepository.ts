@@ -100,6 +100,21 @@ export async function getSqliteDb() {
     } catch {
       // Table already exists
     }
+    try {
+      await dbInstance.execute("ALTER TABLE tasks ADD COLUMN recurrence TEXT DEFAULT 'none'");
+    } catch {
+      // Column already exists
+    }
+    try {
+      await dbInstance.execute("ALTER TABLE tasks ADD COLUMN estimated_minutes INTEGER DEFAULT 0");
+    } catch {
+      // Column already exists
+    }
+    try {
+      await dbInstance.execute("ALTER TABLE habits ADD COLUMN target_days_per_week INTEGER DEFAULT 7");
+    } catch {
+      // Column already exists
+    }
 
     return dbInstance;
   } catch (err) {
@@ -243,8 +258,8 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
   if (Array.isArray(state.habits)) {
     for (const h of state.habits) {
       await db.execute(
-        `INSERT INTO habits (id, title, description, category, icon, streak, best_streak, completed_today, history_json, frozen_dates_json, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        `INSERT INTO habits (id, title, description, category, icon, streak, best_streak, completed_today, history_json, frozen_dates_json, target_days_per_week, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
          ON CONFLICT(id) DO UPDATE SET
            title = excluded.title,
            description = excluded.description,
@@ -254,7 +269,8 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
            best_streak = excluded.best_streak,
            completed_today = excluded.completed_today,
            history_json = excluded.history_json,
-           frozen_dates_json = excluded.frozen_dates_json`,
+           frozen_dates_json = excluded.frozen_dates_json,
+           target_days_per_week = excluded.target_days_per_week`,
         [
           h.id,
           h.title,
@@ -266,6 +282,7 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
           h.completedToday ? 1 : 0,
           JSON.stringify(h.history || []),
           JSON.stringify(h.frozenDates || []),
+          h.targetDaysPerWeek || 7,
           h.createdAt || new Date().toISOString(),
         ]
       );
@@ -276,8 +293,8 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
   if (Array.isArray(state.tasks)) {
     for (const t of state.tasks) {
       await db.execute(
-        `INSERT INTO tasks (id, title, description, completed, priority, category, icon, image_url, checklist_json, due_date, created_at, completed_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        `INSERT INTO tasks (id, title, description, completed, priority, category, icon, image_url, checklist_json, recurrence, estimated_minutes, due_date, created_at, completed_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
          ON CONFLICT(id) DO UPDATE SET
            title = excluded.title,
            description = excluded.description,
@@ -287,6 +304,8 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
            icon = excluded.icon,
            image_url = excluded.image_url,
            checklist_json = excluded.checklist_json,
+           recurrence = excluded.recurrence,
+           estimated_minutes = excluded.estimated_minutes,
            due_date = excluded.due_date,
            completed_at = excluded.completed_at`,
         [
@@ -299,6 +318,8 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
           t.icon || null,
           t.imageUrl || null,
           JSON.stringify(t.checklist || []),
+          t.recurrence || 'none',
+          t.estimatedMinutes || 0,
           t.dueDate || null,
           t.createdAt || new Date().toISOString(),
           t.completedAt || null,

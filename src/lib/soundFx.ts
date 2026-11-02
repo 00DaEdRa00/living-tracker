@@ -749,3 +749,139 @@ export function playQuickDateSound(): void {
     console.warn('Audio playQuickDateSound error:', err);
   }
 }
+
+/**
+ * 21. playRecurrenceSound() — искрящийся восходящий аккорд возобновления повторяющейся задачи
+ */
+export function playRecurrenceSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.18, now + idx * 0.07 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.07 + 0.35);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + idx * 0.07);
+      osc.stop(now + idx * 0.07 + 0.38);
+    });
+  } catch (err) {
+    console.warn('Audio playRecurrenceSound error:', err);
+  }
+}
+
+/**
+ * 22. playVictoryTrumpetSound() — торжественные фанфары триумфа и рекордов
+ */
+export function playVictoryTrumpetSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const chords = [
+      { freq: 440, delay: 0.0, dur: 0.15 },
+      { freq: 554.37, delay: 0.12, dur: 0.15 },
+      { freq: 659.25, delay: 0.24, dur: 0.2 },
+      { freq: 880, delay: 0.38, dur: 0.5 },
+    ];
+
+    chords.forEach(({ freq, delay, dur }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + delay);
+
+      gain.gain.setValueAtTime(0.001, now + delay);
+      gain.gain.linearRampToValueAtTime(0.22, now + delay + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + delay + dur);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + delay);
+      osc.stop(now + delay + dur + 0.05);
+    });
+  } catch (err) {
+    console.warn('Audio playVictoryTrumpetSound error:', err);
+  }
+}
+
+/**
+ * 23. playTimerCompleteSound() — двойной гармоничный колокольчик завершения фокус-сессии / Помодоро
+ */
+export function playTimerCompleteSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const chimes = [
+      { freq: 880, delay: 0.0 },
+      { freq: 1318.51, delay: 0.15 },
+    ];
+
+    chimes.forEach(({ freq, delay }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + delay);
+
+      gain.gain.setValueAtTime(0.001, now + delay);
+      gain.gain.linearRampToValueAtTime(0.25, now + delay + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + delay + 0.6);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + delay);
+      osc.stop(now + delay + 0.65);
+    });
+  } catch (err) {
+    console.warn('Audio playTimerCompleteSound error:', err);
+  }
+}
+
+/**
+ * Каталог доступных процедурных Web Audio FX для звукового теста и превью
+ */
+export interface SoundPreset {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  play: () => void;
+}
+
+export const SOUND_FX_CATALOG: SoundPreset[] = [
+  { id: 'coin', name: 'Звон монет', description: 'Расход / доход бюджета', icon: '🪙', play: playCoinSound },
+  { id: 'habit', name: 'Чек-ин привычки', description: 'Отметка привычки на сегодня', icon: '💧', play: playHabitCheckSound },
+  { id: 'task', name: 'Выполнение задачи', description: 'Чекбокс закрытия дела', icon: '🎯', play: playTaskCompleteSound },
+  { id: 'recurrence', name: 'Цикл повтора', description: 'Перенос повторяющейся задачи', icon: '🔁', play: playRecurrenceSound },
+  { id: 'freeze', name: 'Заморозка стрика', description: 'Streak Freeze от выгорания', icon: '❄️', play: playStreakFreezeSound },
+  { id: 'shield', name: 'Активация щита', description: 'Защита всех стриков на день', icon: '🛡️', play: playShieldSound },
+  { id: 'milestone', name: 'Стрик-рекорд', description: 'Рубеж 7, 14, 21, 30 дней', icon: '⚡', play: playStreakMilestoneSound },
+  { id: 'fanfare', name: 'Ачивка', description: 'Разблокировка трофея', icon: '🎺', play: playAchievementFanfare },
+  { id: 'level_up', name: 'Повышение уровня', description: 'Новый ранг и победа', icon: '🏆', play: playLevelUpSound },
+  { id: 'timer', name: 'Таймер Помодоро', description: 'Завершение фокус-раунда', icon: '⏱️', play: playTimerCompleteSound },
+  { id: 'cat', name: 'Мяуканье кота', description: 'Клик по котику-талисману', icon: '🐱', play: playCatSound },
+  { id: 'share', name: 'Шеринг карточки', description: 'Копирование или сохранение PNG', icon: '📤', play: playShareSound },
+];

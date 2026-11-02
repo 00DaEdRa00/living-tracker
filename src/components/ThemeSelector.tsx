@@ -70,6 +70,14 @@ const THEME_OPTIONS: ThemeOption[] = [
     accentColor: '#7aa2f7',
     desc: 'Tokyo Night Indigo & Neon Sky (#1a1b26)',
   },
+  {
+    id: 'crimson',
+    label: 'Crimson',
+    shortLabel: 'Crimson',
+    icon: '🩸',
+    accentColor: '#f43f5e',
+    desc: 'Velvet Wine & Neon Scarlet (#150810)',
+  },
 ];
 
 export const ThemeSelector: React.FC = () => {

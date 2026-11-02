@@ -20,6 +20,7 @@ import {
   playHabitCheckSound,
   playCatSound,
   playOverageAlarm,
+  playRecurrenceSound,
 } from '../lib/soundFx';
 import { hybridStorage } from '../lib/storageRepository';
 
@@ -50,6 +51,7 @@ const initialHabits: Habit[] = [
     completedToday: false,
     history: [getPastDateStr(4), getPastDateStr(3), getPastDateStr(2), getPastDateStr(1)],
     frozenDates: [],
+    targetDaysPerWeek: 7,
     createdAt: new Date().toISOString(),
   },
   {
@@ -63,6 +65,7 @@ const initialHabits: Habit[] = [
     completedToday: false,
     history: [getPastDateStr(1)],
     frozenDates: [],
+    targetDaysPerWeek: 5,
     createdAt: new Date().toISOString(),
   },
   {
@@ -112,6 +115,8 @@ const initialTasks: Task[] = [
     category: 'Работа',
     icon: '💻',
     imageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
+    recurrence: 'daily',
+    estimatedMinutes: 25,
     checklist: [
       { id: 'st-1-1', title: 'Входящие Telegram', completed: true },
       { id: 'st-1-2', title: 'Рабочая почта и тикеты', completed: false },
@@ -513,6 +518,67 @@ export const useTrackerStore = create<TrackerStore>()(
             eventBus.emit(event);
             checkAchievements(event, getState(), setState);
           }
+        },
+
+        advanceRecurringTask: (id) => {
+          const state = getState();
+          const task = state.tasks.find((t) => t.id === id);
+          if (!task) return;
+
+          const now = new Date();
+          const recurrence = task.recurrence || 'daily';
+          const baseDate = task.dueDate ? new Date(task.dueDate) : now;
+          const effectiveBase = baseDate.getTime() < now.getTime() ? now : baseDate;
+          const nextDate = new Date(effectiveBase);
+
+          if (recurrence === 'daily') {
+            nextDate.setDate(nextDate.getDate() + 1);
+          } else if (recurrence === 'weekly') {
+            nextDate.setDate(nextDate.getDate() + 7);
+          } else if (recurrence === 'monthly') {
+            nextDate.setMonth(nextDate.getMonth() + 1);
+          } else {
+            nextDate.setDate(nextDate.getDate() + 1);
+          }
+
+          const nextDueDateIso = nextDate.toISOString();
+
+          let daysPending = 0;
+          if (task.createdAt) {
+            const createdTime = new Date(task.createdAt).getTime();
+            daysPending = Math.max(0, Math.floor((now.getTime() - createdTime) / (1000 * 60 * 60 * 24)));
+          }
+
+          const updatedChecklist = task.checklist ? task.checklist.map((st) => ({ ...st, completed: false })) : [];
+
+          const updatedTasks = state.tasks.map((t) =>
+            t.id === id
+              ? {
+                  ...t,
+                  completed: false,
+                  dueDate: nextDueDateIso,
+                  checklist: updatedChecklist,
+                  completedAt: undefined,
+                }
+              : t
+          );
+
+          setState({ tasks: updatedTasks });
+          playRecurrenceSound();
+
+          const completedEvent: AppEvent = {
+            type: 'TASK_COMPLETED',
+            payload: { taskId: id, daysPending },
+          };
+          eventBus.emit(completedEvent);
+
+          const recurredEvent: AppEvent = {
+            type: 'TASK_RECURRED',
+            payload: { taskId: id, nextDueDate: nextDueDateIso },
+          };
+          eventBus.emit(recurredEvent);
+
+          checkAchievements(completedEvent, getState(), setState);
         },
 
         clickCat: () => {

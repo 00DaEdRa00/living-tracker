@@ -84,7 +84,7 @@ export async function getDatabaseStats(): Promise<DatabaseStats | null> {
       status: 'browser_fallback',
       storage: 'localStorage',
       db: 'in-memory/web',
-      version: 5,
+      version: 6,
     };
   }
   try {

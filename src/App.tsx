@@ -24,6 +24,7 @@ import {
   Blocks,
   Globe,
   Share2,
+  Music,
 } from 'lucide-react';
 
 import { useTrackerStore, ACHIEVEMENTS, eventBus } from './store/useTrackerStore';
@@ -38,6 +39,7 @@ import TasksSection from './components/TasksSection';
 import HabitsSection from './components/HabitsSection';
 import HudWidget from './components/HudWidget';
 import { DailySummaryShareModal } from './components/DailySummaryShareModal';
+import { SoundEffectsModal } from './components/SoundEffectsModal';
 import { PluginSlotRenderer } from './components/PluginSlots';
 import { PluginMarketplace } from './components/PluginMarketplace';
 import { initializePlugins } from './plugins';
@@ -58,6 +60,7 @@ export const App: React.FC = () => {
   const [isHudPreviewOpen, setIsHudPreviewOpen] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isDailySummaryOpen, setIsDailySummaryOpen] = useState(false);
+  const [isSoundEffectsOpen, setIsSoundEffectsOpen] = useState(false);
   const [language, setLanguage] = useState<SupportedLanguage>('ru');
 
   // Инициализация системы плагинов при монтировании
@@ -254,6 +257,19 @@ export const App: React.FC = () => {
               ) : (
                 <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />
               )}
+            </button>
+
+            {/* Кнопка превью процедурных звуков (Web Audio FX) */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsSoundEffectsOpen(true);
+                playClickSound();
+              }}
+              className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-surface-card border border-surface-border hover:border-accent/40 text-slate-400 hover:text-accent transition-all cursor-pointer"
+              title="Каталог процедурных звуков (Web Audio FX)"
+            >
+              <Music className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
             {/* Кнопка вызова плавающего HUD-виджета */}
@@ -825,6 +841,12 @@ export const App: React.FC = () => {
       <DailySummaryShareModal
         isOpen={isDailySummaryOpen}
         onClose={() => setIsDailySummaryOpen(false)}
+      />
+
+      {/* Каталог процедурных звуков Web Audio FX */}
+      <SoundEffectsModal
+        isOpen={isSoundEffectsOpen}
+        onClose={() => setIsSoundEffectsOpen(false)}
       />
 
       {/* Плавающий HUD-виджет для браузерного превью */}

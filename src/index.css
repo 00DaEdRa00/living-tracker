@@ -73,6 +73,16 @@
   --color-accent-glow: 187 154 247;  /* #bb9af7 Tokyo Neon Violet */
 }
 
+[data-theme='crimson'],
+.theme-crimson {
+  --color-bg-app: 21 8 16;           /* #150810 Deep Velvet Crimson */
+  --color-bg-surface: 36 12 28;      /* #240c1c */
+  --color-bg-card: 50 16 38;         /* #321026 */
+  --color-border-surface: 92 24 66;  /* #5c1842 */
+  --color-accent: 244 63 94;         /* #f43f5e Neon Crimson */
+  --color-accent-glow: 251 113 133;  /* #fb7185 Rose Glow */
+}
+
 @layer base {
   html,
   body {

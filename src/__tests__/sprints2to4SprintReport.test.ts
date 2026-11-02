@@ -1,11 +1,16 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useTrackerStore } from '../store/useTrackerStore';
 import { getDailyPunchline } from '../components/DailySummaryShareModal';
+import { getWeeklyProgress } from '../components/HabitsSection';
 import {
   playSummaryFanfareSound,
   playUploadSound,
   playQuickDateSound,
   playLevelUpSound,
+  playRecurrenceSound,
+  playVictoryTrumpetSound,
+  playTimerCompleteSound,
+  SOUND_FX_CATALOG,
 } from '../lib/soundFx';
 import {
   isTauri,
@@ -26,9 +31,9 @@ describe('Sprint 2-4 Advanced Enhancements Suite', () => {
       expect(useTrackerStore.getState().theme).toBe('tokyo');
     });
 
-    it('cycles through all supported themes including tokyo and dracula', () => {
+    it('cycles through all supported themes including tokyo, dracula and crimson', () => {
       const store = useTrackerStore.getState();
-      const themes = ['amoled', 'cyberpunk', 'emerald', 'synthwave', 'nord', 'dracula', 'tokyo'] as const;
+      const themes = ['amoled', 'cyberpunk', 'emerald', 'synthwave', 'nord', 'dracula', 'tokyo', 'crimson'] as const;
       
       themes.forEach((theme) => {
         store.setTheme(theme);
@@ -102,11 +107,11 @@ describe('Sprint 2-4 Advanced Enhancements Suite', () => {
     });
   });
 
-  describe('Sprint 4: Tauri 2.0 Desktop Bridge & SQLite v5', () => {
-    it('returns SQLite schema version 5 in database stats', async () => {
+  describe('Sprint 4: Tauri 2.0 Desktop Bridge & SQLite v6', () => {
+    it('returns SQLite schema version 6 in database stats', async () => {
       const stats = await getDatabaseStats();
       expect(stats).not.toBeNull();
-      expect(stats?.version).toBe(5);
+      expect(stats?.version).toBe(6);
     });
 
     it('provides database optimization command with safe fallback', async () => {
@@ -142,6 +147,56 @@ describe('Sprint 2-4 Advanced Enhancements Suite', () => {
       const updated = useTrackerStore.getState().habits[0];
       const today = new Date().toISOString().split('T')[0];
       expect(updated.frozenDates).toContain(today);
+    });
+
+    it('calculates weekly habit progress accurately', () => {
+      const today = new Date().toISOString().split('T')[0];
+      const history = [today];
+      const result = getWeeklyProgress(history);
+      expect(result.count).toBe(1);
+      expect(result.ratePercent).toBeGreaterThanOrEqual(14);
+    });
+  });
+
+  describe('Sprint 2: Recurring Tasks & Time Estimation', () => {
+    it('advances a daily recurring task and resets its checklist', () => {
+      const store = useTrackerStore.getState();
+      store.addTask({
+        title: 'Ежедневный стендап',
+        category: 'Работа',
+        recurrence: 'daily',
+        estimatedMinutes: 25,
+        dueDate: '2026-11-01T10:00:00.000Z',
+      });
+
+      const task = useTrackerStore.getState().tasks[0];
+      expect(task).toBeDefined();
+      expect(task.recurrence).toBe('daily');
+      expect(task.estimatedMinutes).toBe(25);
+
+      store.advanceRecurringTask(task.id);
+
+      const updatedTask = useTrackerStore.getState().tasks[0];
+      expect(updatedTask.completed).toBe(false);
+      expect(updatedTask.dueDate).toBeDefined();
+    });
+  });
+
+  describe('Sprint 3: Web Audio FX Procedural Catalog', () => {
+    it('provides sound preset catalog with interactive previews', () => {
+      expect(SOUND_FX_CATALOG.length).toBeGreaterThanOrEqual(10);
+      const keys = SOUND_FX_CATALOG.map((s) => s.id);
+      expect(keys).toContain('coin');
+      expect(keys).toContain('habit');
+      expect(keys).toContain('task');
+      expect(keys).toContain('recurrence');
+      expect(keys).toContain('milestone');
+    });
+
+    it('executes procedural sound generators safely without audio context crash', () => {
+      expect(() => playRecurrenceSound()).not.toThrow();
+      expect(() => playVictoryTrumpetSound()).not.toThrow();
+      expect(() => playTimerCompleteSound()).not.toThrow();
     });
   });
 });

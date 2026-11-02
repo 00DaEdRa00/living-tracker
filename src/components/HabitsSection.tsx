@@ -79,6 +79,14 @@ export function get30DayRate(history: string[] = []): { count: number; ratePerce
   return { count, ratePercent };
 }
 
+export function getWeeklyProgress(history: string[] = []): { count: number; ratePercent: number } {
+  const now = new Date();
+  const past7Iso = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const count = history.filter((d) => d >= past7Iso).length;
+  const ratePercent = Math.min(100, Math.round((count / 7) * 100));
+  return { count, ratePercent };
+}
+
 export const HABIT_ICON_PRESETS = [
   { icon: '💧', label: 'Водный баланс' },
   { icon: '🏋️', label: 'Спорт / Зал' },
@@ -156,12 +164,14 @@ export const HabitsSection: React.FC = () => {
   const [formDescription, setFormDescription] = useState('');
   const [formCategory, setFormCategory] = useState('Здоровье/Спорт');
   const [formIcon, setFormIcon] = useState('💧');
+  const [formTargetDays, setFormTargetDays] = useState<number>(7);
 
   // Форма редактирования привычки
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editCategory, setEditCategory] = useState('Здоровье/Спорт');
   const [editIcon, setEditIcon] = useState('💧');
+  const [editTargetDays, setEditTargetDays] = useState<number>(7);
 
   const today = new Date().toISOString().split('T')[0];
   const currentMonth = today.slice(0, 7); // 'YYYY-MM'
@@ -174,6 +184,7 @@ export const HabitsSection: React.FC = () => {
     setEditDescription(habit.description || '');
     setEditCategory(habit.category || 'Здоровье/Спорт');
     setEditIcon(habit.icon || '💧');
+    setEditTargetDays(habit.targetDaysPerWeek || 7);
   };
 
   const handleSaveEdit = (e: React.FormEvent) => {
@@ -185,6 +196,7 @@ export const HabitsSection: React.FC = () => {
       description: editDescription.trim() || undefined,
       category: editCategory,
       icon: editIcon,
+      targetDaysPerWeek: editTargetDays,
     });
 
     playEditSound();
@@ -287,11 +299,13 @@ export const HabitsSection: React.FC = () => {
       description: formDescription.trim() || undefined,
       category: formCategory,
       icon: formIcon,
+      targetDaysPerWeek: formTargetDays,
       frozenDates: [],
     });
 
     setFormTitle('');
     setFormDescription('');
+    setFormTargetDays(7);
     setIsModalOpen(false);
   };
 
@@ -626,10 +640,22 @@ export const HabitsSection: React.FC = () => {
                               {habit.description}
                             </p>
                           )}
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
                             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-surface text-slate-400 border border-surface-border">
                               {habit.category || 'Общее'}
                             </span>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                              🎯 {habit.targetDaysPerWeek || 7} дн/нед
+                            </span>
+                            {(() => {
+                              const weekly = getWeeklyProgress(habit.history);
+                              const target = habit.targetDaysPerWeek || 7;
+                              return (
+                                <span className="text-[10px] text-slate-400 font-medium">
+                                  Неделя: <strong className={weekly.count >= target ? 'text-emerald-400' : 'text-slate-300'}>{weekly.count}/{target}</strong>
+                                </span>
+                              );
+                            })()}
                             <span className="text-[10px] text-slate-500 font-medium">
                               Стабильность: <strong className="text-emerald-400">{stabilityPercent}%</strong>
                             </span>
@@ -990,6 +1016,35 @@ export const HabitsSection: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Целевая частота в неделю */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                    Целевая частота в неделю
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { days: 7, label: '7 дн', sub: 'Каждый день 🌟' },
+                      { days: 5, label: '5 дн', sub: 'Будни 💼' },
+                      { days: 3, label: '3 дн', sub: '3 р/нед 🎯' },
+                      { days: 2, label: '2 дн', sub: 'Выходные 🌴' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.days}
+                        type="button"
+                        onClick={() => setFormTargetDays(opt.days)}
+                        className={`p-2 rounded-xl text-center border transition-all cursor-pointer ${
+                          formTargetDays === opt.days
+                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm'
+                            : 'bg-surface text-slate-400 border-surface-border hover:text-slate-200'
+                        }`}
+                      >
+                        <div className="text-xs font-bold">{opt.label}</div>
+                        <div className="text-[10px] opacity-75">{opt.sub}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Кнопка создания */}
                 <div className="pt-3">
                   <button
@@ -1107,6 +1162,35 @@ export const HabitsSection: React.FC = () => {
                       }`}
                     >
                       {preset.icon}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Целевая частота в неделю */}
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Целевая частота в неделю
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { days: 7, label: '7 дн', sub: 'Каждый день 🌟' },
+                    { days: 5, label: '5 дн', sub: 'Будни 💼' },
+                    { days: 3, label: '3 дн', sub: '3 р/нед 🎯' },
+                    { days: 2, label: '2 дн', sub: 'Выходные 🌴' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.days}
+                      type="button"
+                      onClick={() => setEditTargetDays(opt.days)}
+                      className={`p-2 rounded-xl text-center border transition-all cursor-pointer ${
+                        editTargetDays === opt.days
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm'
+                          : 'bg-surface text-slate-400 border-surface-border hover:text-slate-200'
+                      }`}
+                    >
+                      <div className="text-xs font-bold">{opt.label}</div>
+                      <div className="text-[10px] opacity-75">{opt.sub}</div>
                     </button>
                   ))}
                 </div>

@@ -238,6 +238,7 @@ export function classifyEisenhower(task: Task, now: Date): 'q1' | 'q2' | 'q3' | 
 export const TasksSection: React.FC = () => {
   const tasks = useTrackerStore((state) => state.tasks);
   const toggleTask = useTrackerStore((state) => state.toggleTask);
+  const advanceRecurringTask = useTrackerStore((state) => state.advanceRecurringTask);
   const addTask = useTrackerStore((state) => state.addTask);
   const updateTask = useTrackerStore((state) => state.updateTask);
   const deleteTask = useTrackerStore((state) => state.deleteTask);
@@ -248,7 +249,7 @@ export const TasksSection: React.FC = () => {
   const tone = useTrackerStore((state) => state.tone);
 
   const [selectedSphere, setSelectedSphere] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed' | 'recurring'>('all');
   const [deadlineFilter, setDeadlineFilter] = useState<DeadlineFilter>('all');
   const [priorityFilter, setPriorityFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const [sortMode, setSortMode] = useState<'default' | 'urgency' | 'priority' | 'newest' | 'alphabetical'>('default');
@@ -270,6 +271,8 @@ export const TasksSection: React.FC = () => {
   const [formPriority, setFormPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [formDueDate, setFormDueDate] = useState('');
   const [formImageUrl, setFormImageUrl] = useState('');
+  const [formRecurrence, setFormRecurrence] = useState<'none' | 'daily' | 'weekly' | 'monthly'>('none');
+  const [formEstimatedMinutes, setFormEstimatedMinutes] = useState<number>(0);
 
   // Форма редактирования задачи
   const [editTitle, setEditTitle] = useState('');
@@ -279,6 +282,8 @@ export const TasksSection: React.FC = () => {
   const [editPriority, setEditPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [editDueDate, setEditDueDate] = useState('');
   const [editImageUrl, setEditImageUrl] = useState('');
+  const [editRecurrence, setEditRecurrence] = useState<'none' | 'daily' | 'weekly' | 'monthly'>('none');
+  const [editEstimatedMinutes, setEditEstimatedMinutes] = useState<number>(0);
 
   // Обновление таймера каждую минуту
   useEffect(() => {
@@ -298,6 +303,8 @@ export const TasksSection: React.FC = () => {
     setEditPriority(task.priority || 'medium');
     setEditDueDate(task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : '');
     setEditImageUrl(task.imageUrl || '');
+    setEditRecurrence(task.recurrence || 'none');
+    setEditEstimatedMinutes(task.estimatedMinutes || 0);
   };
 
   const handleSaveEdit = (e: React.FormEvent) => {
@@ -312,6 +319,8 @@ export const TasksSection: React.FC = () => {
       priority: editPriority,
       imageUrl: editImageUrl.trim() || undefined,
       dueDate: editDueDate ? new Date(editDueDate).toISOString() : undefined,
+      recurrence: editRecurrence,
+      estimatedMinutes: editEstimatedMinutes || undefined,
     });
 
     playEditSound();
@@ -406,9 +415,27 @@ export const TasksSection: React.FC = () => {
       priority: formPriority,
       imageUrl: formImageUrl.trim() || undefined,
       dueDate: formDueDate ? new Date(formDueDate).toISOString() : undefined,
+      recurrence: formRecurrence,
+      estimatedMinutes: formEstimatedMinutes || undefined,
     });
 
+    setFormRecurrence('none');
+    setFormEstimatedMinutes(0);
     setIsModalOpen(false);
+  };
+
+  const handleAdvanceRecurring = (taskId: string) => {
+    advanceRecurringTask(taskId);
+    try {
+      confetti({
+        particleCount: 55,
+        spread: 65,
+        origin: { y: 0.65 },
+        colors: ['#38bdf8', '#a855f7', '#ec4899', '#facc15'],
+      });
+    } catch {
+      // no-op
+    }
   };
 
   const handleSnooze = (taskId: string, hoursToAdd: number) => {
@@ -438,7 +465,9 @@ export const TasksSection: React.FC = () => {
         ? true
         : statusFilter === 'active'
         ? !task.completed
-        : task.completed;
+        : statusFilter === 'completed'
+        ? task.completed
+        : Boolean(task.recurrence && task.recurrence !== 'none');
 
     const matchesPriority =
       priorityFilter === 'all'
@@ -664,6 +693,17 @@ export const TasksSection: React.FC = () => {
               }`}
             >
               Завершённые ({completedCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('recurring')}
+              className={`px-3 py-1 rounded-lg font-bold transition-colors ${
+                statusFilter === 'recurring'
+                  ? 'bg-surface-card text-purple-400 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              🔁 Повторяющиеся ({tasks.filter((t) => t.recurrence && t.recurrence !== 'none').length})
             </button>
             {completedCount > 0 && (
               <button
@@ -1170,6 +1210,20 @@ export const TasksSection: React.FC = () => {
                           </span>
                         )}
 
+                        {task.recurrence && task.recurrence !== 'none' && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                            <span>🔁</span>
+                            <span>{task.recurrence === 'daily' ? 'Ежедневно' : task.recurrence === 'weekly' ? 'Еженедельно' : 'Ежемесячно'}</span>
+                          </span>
+                        )}
+
+                        {Boolean(task.estimatedMinutes && task.estimatedMinutes > 0) && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30 flex items-center gap-0.5">
+                            <span>⏱️</span>
+                            <span>{task.estimatedMinutes} мин</span>
+                          </span>
+                        )}
+
                         {/* Кнопка шеринга карточки */}
                         <button
                           type="button"
@@ -1645,6 +1699,63 @@ export const TasksSection: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Повторение задачи */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                    Регулярность / Повторение
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { id: 'none', label: 'Без повтора' },
+                      { id: 'daily', label: 'Каждый день 🔁' },
+                      { id: 'weekly', label: 'Раз в неделю 📅' },
+                      { id: 'monthly', label: 'Раз в месяц 🗓️' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setFormRecurrence(opt.id as any)}
+                        className={`p-2 rounded-xl text-center text-xs font-bold border transition-colors ${
+                          formRecurrence === opt.id
+                            ? 'bg-purple-500/20 text-purple-300 border-purple-500/50'
+                            : 'bg-surface text-slate-400 border-surface-border hover:text-white'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Оценка времени (Помодоро) */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                    Оценка времени
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { mins: 0, label: 'Без оценки' },
+                      { mins: 15, label: '15 мин' },
+                      { mins: 25, label: '25 мин 🍅' },
+                      { mins: 45, label: '45 мин' },
+                      { mins: 60, label: '60 мин' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.mins}
+                        type="button"
+                        onClick={() => setFormEstimatedMinutes(opt.mins)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${
+                          formEstimatedMinutes === opt.mins
+                            ? 'bg-sky-500/20 text-sky-300 border-sky-500/50'
+                            : 'bg-surface text-slate-400 border-surface-border hover:text-white'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Обложка / Картинка карточки */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
@@ -1906,6 +2017,42 @@ export const TasksSection: React.FC = () => {
                       onChange={(e) => handleImageFileUpload(e, true)}
                     />
                   </label>
+                </div>
+
+                {/* Регулярность и Оценка времени */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Повторение
+                    </label>
+                    <select
+                      value={editRecurrence}
+                      onChange={(e) => setEditRecurrence(e.target.value as any)}
+                      className="w-full px-3 py-2 rounded-2xl bg-surface border border-surface-border text-white text-xs focus:outline-none focus:border-accent"
+                    >
+                      <option value="none">Без повтора</option>
+                      <option value="daily">Каждый день 🔁</option>
+                      <option value="weekly">Раз в неделю 📅</option>
+                      <option value="monthly">Раз в месяц 🗓️</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Оценка времени
+                    </label>
+                    <select
+                      value={editEstimatedMinutes}
+                      onChange={(e) => setEditEstimatedMinutes(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-2xl bg-surface border border-surface-border text-white text-xs focus:outline-none focus:border-accent"
+                    >
+                      <option value={0}>Без оценки</option>
+                      <option value={15}>15 минут</option>
+                      <option value={25}>25 минут (Помодоро 🍅)</option>
+                      <option value={45}>45 минут</option>
+                      <option value={60}>60 минут</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="pt-2 flex items-center justify-end gap-2">
