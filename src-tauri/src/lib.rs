@@ -90,7 +90,6 @@ pub fn run() {
                 priority TEXT NOT NULL DEFAULT 'medium',
                 category TEXT,
                 icon TEXT,
-                image_url TEXT,
                 due_date TEXT,
                 created_at TEXT NOT NULL,
                 completed_at TEXT
