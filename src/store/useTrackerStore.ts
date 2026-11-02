@@ -1,0 +1,462 @@
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import type {
+  TrackerState,
+  TrackerActions,
+  TrackerStore,
+  Transaction,
+  Habit,
+  Task,
+  Budget,
+  ToneMode,
+  AppEvent,
+  Achievement,
+} from '../types/tracker';
+import { eventBus } from '../lib/eventBus';
+import { ACHIEVEMENTS } from '../data/achievements';
+
+export { eventBus };
+export { ACHIEVEMENTS, getAchievementText } from '../data/achievements';
+
+const initialBudget: Budget = {
+  monthlyLimit: 50000,
+  spent: 0,
+  currency: '₽',
+};
+
+const initialHabits: Habit[] = [
+  {
+    id: 'habit-1',
+    title: 'Выпить 2л чистой воды',
+    description: 'Очистить организм и держать баланс',
+    category: 'Здоровье',
+    streak: 2,
+    bestStreak: 2,
+    completedToday: false,
+    history: [],
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'habit-2',
+    title: '15 минут зарядки',
+    description: 'Разминка и растяжка для спины',
+    category: 'Спорт',
+    streak: 0,
+    bestStreak: 0,
+    completedToday: false,
+    history: [],
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'habit-3',
+    title: 'Чтение книги 30 мин',
+    description: 'Развитие концентрации без ленты новостей',
+    category: 'Развитие',
+    streak: 6,
+    bestStreak: 6,
+    completedToday: false,
+    history: [],
+    createdAt: new Date().toISOString(),
+  },
+];
+
+const initialTasks: Task[] = [
+  {
+    id: 'task-1',
+    title: 'Разобрать завал в почте и мессенджерах',
+    description: 'Ответить на зависшие диалоги',
+    completed: false,
+    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(), // 4 дня назад для ачивки
+    priority: 'high',
+    category: 'Дела',
+  },
+  {
+    id: 'task-2',
+    title: 'Оплатить счета и подписки',
+    description: 'Проверить актуальные тарифы',
+    completed: false,
+    createdAt: new Date().toISOString(),
+    priority: 'medium',
+    category: 'Финансы',
+  },
+];
+
+const safeLocalStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return window.localStorage.getItem(key);
+      }
+    } catch {
+      // browser storage disabled or restricted
+    }
+    return null;
+  },
+  setItem: (key: string, value: string): void => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(key, value);
+      }
+    } catch {
+      // browser storage disabled or restricted
+    }
+  },
+  removeItem: (key: string): void => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(key);
+      }
+    } catch {
+      // browser storage disabled or restricted
+    }
+  },
+};
+
+/**
+ * Проверка условий достижений на основе наступившего события и текущего состояния стора.
+ */
+export function checkAchievements(
+  event: AppEvent,
+  state: TrackerState,
+  setState: (
+    partial:
+      | Partial<TrackerState>
+      | ((prevState: TrackerState) => Partial<TrackerState>)
+  ) => void
+): void {
+  const currentUnlocked = { ...state.unlockedAchievements };
+  let newlyUnlocked: Achievement | null = null;
+
+  const tryUnlock = (achievementId: string) => {
+    if (currentUnlocked[achievementId]) return;
+    const achievement = ACHIEVEMENTS.find((item) => item.id === achievementId);
+    if (!achievement) return;
+
+    currentUnlocked[achievementId] = new Date().toISOString();
+    newlyUnlocked = achievement;
+  };
+
+  switch (event.type) {
+    case 'TRANSACTION_ADDED': {
+      tryUnlock('first_transaction');
+      if (state.budget.spent > state.budget.monthlyLimit) {
+        tryUnlock('overbudget');
+      }
+      if (event.payload.amount >= 10000) {
+        tryUnlock('big_spender');
+      }
+      break;
+    }
+    case 'HABIT_COMPLETED': {
+      tryUnlock('first_habit');
+      if (event.payload.streak >= 3) {
+        tryUnlock('streak_3');
+      }
+      if (event.payload.streak >= 7) {
+        tryUnlock('streak_7');
+      }
+      break;
+    }
+    case 'TASK_COMPLETED': {
+      tryUnlock('first_task');
+      if (event.payload.daysPending === 0) {
+        tryUnlock('speedrunner');
+      }
+      if (event.payload.daysPending >= 3) {
+        tryUnlock('procrastinator_cured');
+      }
+      break;
+    }
+    case 'CAT_CLICKED': {
+      if (event.payload.totalClicks >= 1) {
+        tryUnlock('cat_clicked_1');
+      }
+      if (event.payload.totalClicks >= 10) {
+        tryUnlock('cat_clicked_10');
+      }
+      break;
+    }
+    case 'PRICE_CLICKED': {
+      if (event.payload.totalClicks >= 1) {
+        tryUnlock('price_clicked_1');
+      }
+      break;
+    }
+    case 'PAGE_VIEWED': {
+      tryUnlock('page_explorer');
+      break;
+    }
+  }
+
+  if (newlyUnlocked) {
+    setState({
+      unlockedAchievements: currentUnlocked,
+      recentUnlocked: newlyUnlocked,
+    });
+  }
+}
+
+export const useTrackerStore = create<TrackerStore>()(
+  persist(
+    (set, get) => {
+      const getState = get;
+      const setState = set;
+
+      return {
+        // Начальное состояние
+        budget: initialBudget,
+        transactions: [],
+        habits: initialHabits,
+        tasks: initialTasks,
+        tone: 'sassy',
+        catClicks: 0,
+        priceClicks: 0,
+        unlockedAchievements: {},
+        recentUnlocked: null,
+
+        // Экшены
+        addTransaction: (t) => {
+          const id =
+            t.id ||
+            (typeof crypto !== 'undefined' && crypto.randomUUID
+              ? crypto.randomUUID()
+              : `tx_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`);
+          const date = t.date || new Date().toISOString();
+          const transaction: Transaction = {
+            ...t,
+            id,
+            date,
+            type: t.type || 'expense',
+          };
+
+          const isExpense = transaction.type !== 'income';
+          const prevSpent = getState().budget.spent;
+          const newSpent = isExpense
+            ? prevSpent + transaction.amount
+            : Math.max(0, prevSpent - transaction.amount);
+
+          setState((state) => ({
+            transactions: [transaction, ...state.transactions],
+            budget: {
+              ...state.budget,
+              spent: newSpent,
+            },
+          }));
+
+          const event: AppEvent = {
+            type: 'TRANSACTION_ADDED',
+            payload: transaction,
+          };
+          eventBus.emit(event);
+          checkAchievements(event, getState(), setState);
+        },
+
+        toggleHabit: (id) => {
+          const state = getState();
+          const habit = state.habits.find((h) => h.id === id);
+          if (!habit) return;
+
+          const today = new Date().toISOString().split('T')[0];
+          const willBeCompleted = !habit.completedToday;
+
+          let newStreak = habit.streak;
+          let newHistory = [...habit.history];
+
+          if (willBeCompleted) {
+            newStreak = habit.streak + 1;
+            if (!newHistory.includes(today)) {
+              newHistory.push(today);
+            }
+          } else {
+            newStreak = Math.max(0, habit.streak - 1);
+            newHistory = newHistory.filter((d) => d !== today);
+          }
+
+          const updatedHabits = state.habits.map((h) =>
+            h.id === id
+              ? {
+                  ...h,
+                  completedToday: willBeCompleted,
+                  streak: newStreak,
+                  bestStreak: Math.max(h.bestStreak || 0, newStreak),
+                  history: newHistory,
+                }
+              : h
+          );
+
+          setState({ habits: updatedHabits });
+
+          if (willBeCompleted) {
+            const event: AppEvent = {
+              type: 'HABIT_COMPLETED',
+              payload: { habitId: id, streak: newStreak },
+            };
+            eventBus.emit(event);
+            checkAchievements(event, getState(), setState);
+          }
+        },
+
+        toggleTask: (id) => {
+          const state = getState();
+          const task = state.tasks.find((t) => t.id === id);
+          if (!task) return;
+
+          const willBeCompleted = !task.completed;
+          const now = new Date();
+
+          let daysPending = 0;
+          if (task.createdAt) {
+            const createdTime = new Date(task.createdAt).getTime();
+            const diffMs = now.getTime() - createdTime;
+            daysPending = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+          }
+
+          const updatedTasks = state.tasks.map((t) =>
+            t.id === id
+              ? {
+                  ...t,
+                  completed: willBeCompleted,
+                  completedAt: willBeCompleted ? now.toISOString() : undefined,
+                }
+              : t
+          );
+
+          setState({ tasks: updatedTasks });
+
+          if (willBeCompleted) {
+            const event: AppEvent = {
+              type: 'TASK_COMPLETED',
+              payload: { taskId: id, daysPending },
+            };
+            eventBus.emit(event);
+            checkAchievements(event, getState(), setState);
+          }
+        },
+
+        clickCat: () => {
+          const nextClicks = getState().catClicks + 1;
+          setState({ catClicks: nextClicks });
+
+          const event: AppEvent = {
+            type: 'CAT_CLICKED',
+            payload: { totalClicks: nextClicks },
+          };
+          eventBus.emit(event);
+          checkAchievements(event, getState(), setState);
+        },
+
+        clickPrice: () => {
+          const nextClicks = getState().priceClicks + 1;
+          setState({ priceClicks: nextClicks });
+
+          const event: AppEvent = {
+            type: 'PRICE_CLICKED',
+            payload: { totalClicks: nextClicks },
+          };
+          eventBus.emit(event);
+          checkAchievements(event, getState(), setState);
+        },
+
+        setTone: (tone: ToneMode) => {
+          setState({ tone });
+        },
+
+        closeAchievementModal: () => {
+          setState({ recentUnlocked: null });
+        },
+
+        // Расширенные вспомогательные методы
+        setBudgetLimit: (monthlyLimit: number) => {
+          setState((state) => ({
+            budget: {
+              ...state.budget,
+              monthlyLimit,
+            },
+          }));
+        },
+
+        addHabit: (habit) => {
+          const id =
+            habit.id ||
+            (typeof crypto !== 'undefined' && crypto.randomUUID
+              ? crypto.randomUUID()
+              : `hb_${Date.now()}`);
+          const newHabit: Habit = {
+            ...habit,
+            id,
+            streak: 0,
+            bestStreak: 0,
+            completedToday: false,
+            history: [],
+            createdAt: habit.createdAt || new Date().toISOString(),
+          };
+          setState((state) => ({ habits: [...state.habits, newHabit] }));
+        },
+
+        addTask: (task) => {
+          const id =
+            task.id ||
+            (typeof crypto !== 'undefined' && crypto.randomUUID
+              ? crypto.randomUUID()
+              : `tk_${Date.now()}`);
+          const newTask: Task = {
+            ...task,
+            id,
+            completed: false,
+            createdAt: task.createdAt || new Date().toISOString(),
+          };
+          setState((state) => ({ tasks: [...state.tasks, newTask] }));
+        },
+
+        deleteHabit: (id) => {
+          setState((state) => ({
+            habits: state.habits.filter((h) => h.id !== id),
+          }));
+        },
+
+        deleteTask: (id) => {
+          setState((state) => ({
+            tasks: state.tasks.filter((t) => t.id !== id),
+          }));
+        },
+
+        deleteTransaction: (id) => {
+          const state = getState();
+          const target = state.transactions.find((tx) => tx.id === id);
+          if (!target) return;
+
+          const isExpense = target.type !== 'income';
+          const newSpent = isExpense
+            ? Math.max(0, state.budget.spent - target.amount)
+            : state.budget.spent + target.amount;
+
+          setState({
+            transactions: state.transactions.filter((tx) => tx.id !== id),
+            budget: {
+              ...state.budget,
+              spent: newSpent,
+            },
+          });
+        },
+
+        resetAll: () => {
+          setState({
+            budget: initialBudget,
+            transactions: [],
+            habits: initialHabits,
+            tasks: initialTasks,
+            tone: 'sassy',
+            catClicks: 0,
+            priceClicks: 0,
+            unlockedAchievements: {},
+            recentUnlocked: null,
+          });
+        },
+      };
+    },
+    {
+      name: 'living-tracker-storage',
+      storage: createJSONStorage(() => safeLocalStorage),
+    }
+  )
+);

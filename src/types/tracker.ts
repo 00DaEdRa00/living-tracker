@@ -1,0 +1,128 @@
+/**
+ * Core type definitions for Living Tracker (Живой трекер).
+ */
+
+export type ToneMode = 'neutral' | 'ironic' | 'sassy';
+
+export type TransactionType = 'expense' | 'income';
+
+export interface Transaction {
+  id: string;
+  amount: number;
+  category: string;
+  description?: string;
+  date: string; // ISO date string
+  type?: TransactionType;
+}
+
+export interface Habit {
+  id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  streak: number;
+  bestStreak?: number;
+  completedToday: boolean;
+  history: string[]; // ISO date strings ('YYYY-MM-DD')
+  createdAt: string; // ISO date string
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  completed: boolean;
+  createdAt: string; // ISO date string
+  completedAt?: string; // ISO date string
+  dueDate?: string;
+  priority?: 'low' | 'medium' | 'high';
+  category?: string;
+}
+
+export interface Budget {
+  monthlyLimit: number;
+  spent: number;
+  currency?: string;
+}
+
+export type AchievementCategory = 'finance' | 'habits' | 'tasks' | 'easter_egg' | 'system';
+export type AchievementRarity = 'common' | 'rare' | 'epic' | 'legendary';
+
+export interface AchievementToneContent {
+  title: string;
+  description: string;
+}
+
+export type AchievementTones = Record<ToneMode, AchievementToneContent>;
+
+export interface Achievement {
+  id: string;
+  icon: string;
+  category: AchievementCategory;
+  rarity?: AchievementRarity;
+  title: string;
+  description: string;
+  tones?: Partial<AchievementTones>;
+}
+
+export interface UnlockedAchievement {
+  id: string;
+  unlockedAt: string; // ISO date string
+  achievement?: Achievement;
+}
+
+/**
+ * Event bus events union
+ */
+export type AppEvent =
+  | { type: 'TRANSACTION_ADDED'; payload: Transaction }
+  | { type: 'HABIT_COMPLETED'; payload: { habitId: string; streak: number } }
+  | { type: 'TASK_COMPLETED'; payload: { taskId: string; daysPending: number } }
+  | { type: 'CAT_CLICKED'; payload: { totalClicks: number } }
+  | { type: 'PRICE_CLICKED'; payload: { totalClicks: number } }
+  | { type: 'PAGE_VIEWED'; payload: { page: string } };
+
+export type AppEventType = AppEvent['type'];
+
+export type EventHandler<T extends AppEvent = AppEvent> = (event: T) => void;
+
+export interface IEventBus {
+  on<T extends AppEventType>(
+    type: T | '*',
+    handler: (event: T extends AppEventType ? Extract<AppEvent, { type: T }> : AppEvent) => void
+  ): () => void;
+  emit(event: AppEvent): void;
+}
+
+export interface TrackerState {
+  budget: Budget;
+  transactions: Transaction[];
+  habits: Habit[];
+  tasks: Task[];
+  tone: ToneMode;
+  catClicks: number;
+  priceClicks: number;
+  unlockedAchievements: Record<string, string>; // achievement ID -> unlock ISO date
+  recentUnlocked: Achievement | null;
+}
+
+export interface TrackerActions {
+  addTransaction: (transaction: Omit<Transaction, 'id' | 'date'> & { id?: string; date?: string }) => void;
+  toggleHabit: (id: string) => void;
+  toggleTask: (id: string) => void;
+  clickCat: () => void;
+  clickPrice: () => void;
+  setTone: (tone: ToneMode) => void;
+  closeAchievementModal: () => void;
+  
+  // Extended helper actions
+  setBudgetLimit: (monthlyLimit: number) => void;
+  addHabit: (habit: Omit<Habit, 'id' | 'streak' | 'completedToday' | 'history' | 'createdAt'> & { id?: string; createdAt?: string }) => void;
+  addTask: (task: Omit<Task, 'id' | 'completed' | 'createdAt'> & { id?: string; createdAt?: string }) => void;
+  deleteHabit: (id: string) => void;
+  deleteTask: (id: string) => void;
+  deleteTransaction: (id: string) => void;
+  resetAll: () => void;
+}
+
+export type TrackerStore = TrackerState & TrackerActions;
