@@ -31,6 +31,7 @@ import ThemeSelector from './components/ThemeSelector';
 import BudgetRing from './components/BudgetRing';
 import CatClicker from './components/CatClicker';
 import AchievementModal from './components/AchievementModal';
+import AchievementsGalleryModal from './components/AchievementsGalleryModal';
 import QuickAddModal from './components/QuickAddModal';
 import TasksSection from './components/TasksSection';
 import HabitsSection from './components/HabitsSection';
@@ -53,6 +54,7 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<DashboardTab>('all');
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
   const [isHudPreviewOpen, setIsHudPreviewOpen] = useState(false);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [language, setLanguage] = useState<SupportedLanguage>('ru');
 
   // Инициализация системы плагинов при монтировании
@@ -239,7 +241,14 @@ export const App: React.FC = () => {
             </button>
 
             {/* Баланс очков / XP */}
-            <div className="flex items-center gap-3 px-3.5 py-1.5 rounded-2xl bg-surface-card border border-surface-border shadow-sm">
+            <div
+              onClick={() => {
+                playClickSound();
+                setIsGalleryOpen(true);
+              }}
+              className="flex items-center gap-3 px-3.5 py-1.5 rounded-2xl bg-surface-card border border-surface-border shadow-sm hover:border-amber-500/50 cursor-pointer transition-all"
+              title="Открыть зал славы и трофеи"
+            >
               <div className="flex flex-col text-right">
                 <div className="flex items-center justify-end gap-1 text-xs font-bold text-white">
                   <Trophy className="w-3.5 h-3.5 text-amber-400" />
@@ -409,9 +418,15 @@ export const App: React.FC = () => {
                 </div>
 
                 {/* Виджет: Достижения */}
-                <div className="p-5 rounded-3xl bg-gradient-to-br from-purple-950/30 via-surface-card to-surface-card border border-purple-500/30 shadow-lg">
+                <div
+                  onClick={() => {
+                    playClickSound();
+                    setIsGalleryOpen(true);
+                  }}
+                  className="p-4 rounded-3xl bg-surface-card border border-surface-border hover:border-amber-500/50 shadow-lg cursor-pointer transition-all group"
+                >
                   <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2 text-purple-400 font-bold text-sm">
+                    <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
                       <Trophy className="w-5 h-5 text-amber-400" />
                       <span>Достижения</span>
                     </div>
@@ -449,6 +464,9 @@ export const App: React.FC = () => {
                       ? 'Выполняй привычки и кликай секретки, чтобы закрыть коллекцию!'
                       : 'Открывайте новые достижения за активность и дисциплину.'}
                   </p>
+                  <span className="text-[11px] text-amber-400 font-semibold mt-2 inline-flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                    Открыть зал славы и карточки шеринга →
+                  </span>
                 </div>
 
                 {/* Виджет: Быстрый доступ к задачам */}
@@ -731,6 +749,12 @@ export const App: React.FC = () => {
 
       {/* Модалка достижений */}
       <AchievementModal />
+
+      {/* Галерея достижений и зал славы */}
+      <AchievementsGalleryModal
+        isOpen={isGalleryOpen}
+        onClose={() => setIsGalleryOpen(false)}
+      />
 
       {/* Модалка быстрого добавления расхода */}
       <QuickAddModal

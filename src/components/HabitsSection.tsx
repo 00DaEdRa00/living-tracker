@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Calendar,
   Info,
+  Share2,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
@@ -66,6 +67,7 @@ export const HabitsSection: React.FC = () => {
   const freezeHabit = useTrackerStore((state) => state.freezeHabit);
   const addHabit = useTrackerStore((state) => state.addHabit);
   const deleteHabit = useTrackerStore((state) => state.deleteHabit);
+  const openAchievementModal = useTrackerStore((state) => state.openAchievementModal);
   const tone = useTrackerStore((state) => state.tone);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -120,6 +122,16 @@ export const HabitsSection: React.FC = () => {
         // no-op
       }
     }
+  };
+
+  const handleShareHabit = (habit: Habit) => {
+    playClickSound();
+    let targetAch = 'first_habit';
+    if (habit.streak >= 30) targetAch = 'streak_30';
+    else if (habit.streak >= 7) targetAch = 'streak_7';
+    else if (habit.streak >= 3) targetAch = 'streak_3';
+    else if (habit.frozenDates && habit.frozenDates.length > 0) targetAch = 'freeze_used';
+    openAchievementModal(targetAch);
   };
 
   const handleCreateHabit = (e: React.FormEvent) => {
@@ -405,34 +417,48 @@ export const HabitsSection: React.FC = () => {
                   </div>
 
                   {/* Нижняя панель действий: Кнопка заморозки и Быстрый тактильный чек-ин */}
-                  <div className="pt-3 border-t border-surface-border/60 flex items-center justify-between gap-3">
-                    {/* Кнопка «Заморозить стрик» */}
-                    <button
-                      type="button"
-                      onClick={() => handleFreeze(habit.id)}
-                      disabled={freezesRemaining <= 0 && !isFrozenToday}
-                      title={
-                        isFrozenToday
-                          ? 'Нажмите, чтобы отменить сегодняшнюю заморозку'
-                          : freezesRemaining <= 0
-                          ? 'Лимит 2 заморозки в месяц исчерпан'
-                          : 'Защитить стрик от сброса при пропуске (до 2 раз в месяц)'
-                      }
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        isFrozenToday
-                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 hover:bg-cyan-500/30 shadow-md shadow-cyan-950/40'
-                          : freezesRemaining <= 0
-                          ? 'bg-slate-800/40 text-slate-500 border border-slate-800 cursor-not-allowed opacity-60'
-                          : 'bg-surface hover:bg-slate-800 text-sky-400 border border-sky-500/30 hover:border-sky-500/60'
-                      }`}
-                    >
-                      <Snowflake className={`w-3.5 h-3.5 ${isFrozenToday ? 'animate-spin' : ''}`} />
-                      <span>
-                        {isFrozenToday
-                          ? 'Заморожено ❄️'
-                          : `Заморозка (${freezesRemaining}/2)`}
-                      </span>
-                    </button>
+                  <div className="pt-3 border-t border-surface-border/60 flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5">
+                      {/* Кнопка «Заморозить стрик» */}
+                      <button
+                        type="button"
+                        onClick={() => handleFreeze(habit.id)}
+                        disabled={freezesRemaining <= 0 && !isFrozenToday}
+                        title={
+                          isFrozenToday
+                            ? 'Нажмите, чтобы отменить сегодняшнюю заморозку'
+                            : freezesRemaining <= 0
+                            ? 'Лимит 2 заморозки в месяц исчерпан'
+                            : 'Защитить стрик от сброса при пропуске (до 2 раз в месяц)'
+                        }
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          isFrozenToday
+                            ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 hover:bg-cyan-500/30 shadow-md shadow-cyan-950/40'
+                            : freezesRemaining <= 0
+                            ? 'bg-slate-800/40 text-slate-500 border border-slate-800 cursor-not-allowed opacity-60'
+                            : 'bg-surface hover:bg-slate-800 text-sky-400 border border-sky-500/30 hover:border-sky-500/60'
+                        }`}
+                      >
+                        <Snowflake className={`w-3.5 h-3.5 ${isFrozenToday ? 'animate-spin' : ''}`} />
+                        <span>
+                          {isFrozenToday
+                            ? 'Заморожено ❄️'
+                            : `Заморозка (${freezesRemaining}/2)`}
+                        </span>
+                      </button>
+
+                      {/* Кнопка «Поделиться» */}
+                      {(habit.streak >= 3 || isFrozenToday || (habit.bestStreak && habit.bestStreak >= 3)) && (
+                        <button
+                          type="button"
+                          onClick={() => handleShareHabit(habit)}
+                          title="Сгенерировать и скопировать PNG карточку стрика"
+                          className="p-2 rounded-xl bg-surface hover:bg-slate-800 text-slate-300 hover:text-accent border border-surface-border transition-colors cursor-pointer"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
 
                     {/* Быстрый чек-ин с тактильной анимацией */}
                     <motion.button

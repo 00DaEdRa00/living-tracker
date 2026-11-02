@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Timer,
   Image as ImageIcon,
+  ArrowUpDown,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
@@ -155,6 +156,7 @@ export const TasksSection: React.FC = () => {
 
   const [selectedSphere, setSelectedSphere] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [sortMode, setSortMode] = useState<'default' | 'urgency' | 'priority'>('default');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -254,6 +256,22 @@ export const TasksSection: React.FC = () => {
         : task.completed;
 
     return matchesSphere && matchesStatus;
+  });
+
+  // Сортировка задач
+  const sortedTasks = [...filteredTasks].sort((a, b) => {
+    if (sortMode === 'urgency') {
+      const aDue = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+      const bDue = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+      return aDue - bDue;
+    }
+    if (sortMode === 'priority') {
+      const weights: Record<string, number> = { high: 3, medium: 2, low: 1 };
+      const wa = weights[a.priority || 'medium'] || 2;
+      const wb = weights[b.priority || 'medium'] || 2;
+      return wb - wa;
+    }
+    return 0;
   });
 
   // Подсчёт задач по сферам
@@ -373,8 +391,58 @@ export const TasksSection: React.FC = () => {
             </button>
           </div>
 
+          {/* Сортировка */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-surface border border-surface-border text-xs">
+            <span className="text-[10px] text-slate-500 font-bold px-1.5 flex items-center gap-1">
+              <ArrowUpDown className="w-3 h-3 text-slate-400" />
+              <span className="hidden xs:inline">Сорт:</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setSortMode('default');
+              }}
+              className={`px-2 py-0.5 rounded-lg font-bold transition-colors ${
+                sortMode === 'default'
+                  ? 'bg-surface-card text-white shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Обычная
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setSortMode('urgency');
+              }}
+              className={`px-2 py-0.5 rounded-lg font-bold transition-colors ${
+                sortMode === 'urgency'
+                  ? 'bg-surface-card text-rose-400 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Срочные 🔥
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setSortMode('priority');
+              }}
+              className={`px-2 py-0.5 rounded-lg font-bold transition-colors ${
+                sortMode === 'priority'
+                  ? 'bg-surface-card text-amber-400 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Приоритет ⚡
+            </button>
+          </div>
+
           <span className="text-[11px] text-slate-400 hidden sm:inline-block">
-            Показано: <strong className="text-white">{filteredTasks.length}</strong>
+            Показано: <strong className="text-white">{sortedTasks.length}</strong>
           </span>
         </div>
 
@@ -383,7 +451,7 @@ export const TasksSection: React.FC = () => {
       </div>
 
       {/* Список карточек задач */}
-      {filteredTasks.length === 0 ? (
+      {sortedTasks.length === 0 ? (
         <div className="p-12 text-center rounded-3xl bg-surface-card/60 border border-dashed border-surface-border">
           <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-slate-800/80 flex items-center justify-center text-slate-500">
             <CheckCircle2 className="w-7 h-7 text-accent" />
@@ -405,7 +473,7 @@ export const TasksSection: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <AnimatePresence>
-            {filteredTasks.map((task) => {
+            {sortedTasks.map((task) => {
               const urgency = task.dueDate && !task.completed
                 ? formatTimeLeft(task.dueDate, currentTime)
                 : null;

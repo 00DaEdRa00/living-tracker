@@ -136,4 +136,45 @@ describe('Sprint 2: Habits, Streak Freeze & Activity Heatmap', () => {
     const success = useTrackerStore.getState().freezeHabit(habit.id);
     expect(success).toBe(false);
   });
+
+  it('unlocks freeze_used achievement upon freezing a habit', () => {
+    const store = useTrackerStore.getState();
+    const habit = store.habits[0];
+
+    expect(store.unlockedAchievements['freeze_used']).toBeUndefined();
+    store.freezeHabit(habit.id);
+
+    const updatedStore = useTrackerStore.getState();
+    expect(updatedStore.unlockedAchievements['freeze_used']).toBeDefined();
+    expect(updatedStore.recentUnlocked?.id).toBe('freeze_used');
+  });
+
+  it('unlocks streak_30 achievement when reaching 30-day streak', () => {
+    const store = useTrackerStore.getState();
+    const habit = store.habits[0];
+
+    // Set initial streak to 29
+    useTrackerStore.setState({
+      habits: store.habits.map((h) =>
+        h.id === habit.id ? { ...h, streak: 29, completedToday: false } : h
+      ),
+    });
+
+    useTrackerStore.getState().toggleHabit(habit.id);
+
+    const updatedStore = useTrackerStore.getState();
+    expect(updatedStore.unlockedAchievements['streak_30']).toBeDefined();
+    expect(updatedStore.recentUnlocked?.id).toBe('streak_30');
+  });
+
+  it('opens achievement modal manually via openAchievementModal', () => {
+    const store = useTrackerStore.getState();
+    expect(store.recentUnlocked).toBeNull();
+
+    store.openAchievementModal('first_task');
+    expect(useTrackerStore.getState().recentUnlocked?.id).toBe('first_task');
+
+    store.closeAchievementModal();
+    expect(useTrackerStore.getState().recentUnlocked).toBeNull();
+  });
 });

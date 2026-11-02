@@ -83,6 +83,7 @@ export interface UnlockedAchievement {
 export type AppEvent =
   | { type: 'TRANSACTION_ADDED'; payload: Transaction }
   | { type: 'HABIT_COMPLETED'; payload: { habitId: string; streak: number } }
+  | { type: 'HABIT_FROZEN'; payload: { habitId: string; date: string } }
   | { type: 'TASK_COMPLETED'; payload: { taskId: string; daysPending: number } }
   | { type: 'CAT_CLICKED'; payload: { totalClicks: number } }
   | { type: 'PRICE_CLICKED'; payload: { totalClicks: number } }
@@ -126,6 +127,7 @@ export interface TrackerActions {
   toggleSound: () => void;
   setSoundEnabled: (enabled: boolean) => void;
   closeAchievementModal: () => void;
+  openAchievementModal: (achievementOrId: string | Achievement) => void;
   
   // Extended helper actions
   setBudgetLimit: (monthlyLimit: number) => void;

@@ -234,6 +234,13 @@ export function checkAchievements(
       if (event.payload.streak >= 7) {
         tryUnlock('streak_7');
       }
+      if (event.payload.streak >= 30) {
+        tryUnlock('streak_30');
+      }
+      break;
+    }
+    case 'HABIT_FROZEN': {
+      tryUnlock('freeze_used');
       break;
     }
     case 'TASK_COMPLETED': {
@@ -417,6 +424,14 @@ export const useTrackerStore = create<TrackerStore>()(
               h.id === id ? { ...h, frozenDates: updated } : h
             ),
           });
+
+          const event: AppEvent = {
+            type: 'HABIT_FROZEN',
+            payload: { habitId: id, date: today },
+          };
+          eventBus.emit(event);
+          checkAchievements(event, getState(), setState);
+
           return true;
         },
 
@@ -505,6 +520,16 @@ export const useTrackerStore = create<TrackerStore>()(
 
         closeAchievementModal: () => {
           setState({ recentUnlocked: null });
+        },
+
+        openAchievementModal: (achievementOrId) => {
+          const ach =
+            typeof achievementOrId === 'string'
+              ? ACHIEVEMENTS.find((a) => a.id === achievementOrId) || null
+              : achievementOrId;
+          if (ach) {
+            setState({ recentUnlocked: ach });
+          }
         },
 
         // Расширенные вспомогательные методы
