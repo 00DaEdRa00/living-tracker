@@ -301,3 +301,81 @@ export function playClickSound(): void {
     console.warn('Audio playClickSound error:', err);
   }
 }
+
+/**
+ * 8. playTaskCompleteSound() — кристально чистый аккорд выполнения задачи (A5 -> C#6)
+ */
+export function playTaskCompleteSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const notes = [
+      { freq: 880.0, time: 0, dur: 0.22, vol: 0.24 }, // A5
+      { freq: 1108.73, time: 0.06, dur: 0.35, vol: 0.26 }, // C#6
+      { freq: 1318.51, time: 0.12, dur: 0.45, vol: 0.2 }, // E6
+    ];
+
+    notes.forEach(({ freq, time, dur, vol }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + time);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.setValueAtTime(vol, now + time);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + time + dur);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + time);
+      osc.stop(now + time + dur + 0.02);
+    });
+  } catch (err) {
+    console.warn('Audio playTaskCompleteSound error:', err);
+  }
+}
+
+/**
+ * 9. playStreakFreezeSound() — ледяной кристаллический перезвон заморозки стрика
+ */
+export function playStreakFreezeSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    // Ледяные переливы (высокие гармоники с легким дилеем)
+    const iceTones = [
+      { freq: 1760.0, time: 0.0, dur: 0.4, vol: 0.18 }, // A6
+      { freq: 2093.0, time: 0.05, dur: 0.45, vol: 0.2 }, // C7
+      { freq: 2637.02, time: 0.1, dur: 0.55, vol: 0.22 }, // E7
+      { freq: 3520.0, time: 0.18, dur: 0.65, vol: 0.16 }, // A7
+    ];
+
+    iceTones.forEach(({ freq, time, dur, vol }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + time);
+      // Небольшое ледяное падение частоты
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.96, now + time + dur);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.setValueAtTime(vol, now + time);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + time + dur);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + time);
+      osc.stop(now + time + dur + 0.02);
+    });
+  } catch (err) {
+    console.warn('Audio playStreakFreezeSound error:', err);
+  }
+}

@@ -20,6 +20,7 @@ import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
 import type { Task } from '../types/tracker';
 import { PluginSlotRenderer } from './PluginSlots';
+import { playTaskCompleteSound, playClickSound } from '../lib/soundFx';
 
 export interface LifeSphere {
   id: string;
@@ -176,6 +177,7 @@ export const TasksSection: React.FC = () => {
 
   const handleToggle = (id: string, completed: boolean) => {
     if (!completed) {
+      playTaskCompleteSound();
       try {
         confetti({
           particleCount: 50,
@@ -186,6 +188,8 @@ export const TasksSection: React.FC = () => {
       } catch {
         // no-op
       }
+    } else {
+      playClickSound();
     }
     toggleTask(id);
   };

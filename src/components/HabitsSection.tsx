@@ -19,6 +19,7 @@ import {
 import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
 import type { Habit } from '../types/tracker';
+import { playHabitCheckSound, playStreakFreezeSound, playClickSound } from '../lib/soundFx';
 
 export const HABIT_ICON_PRESETS = [
   { icon: '💧', label: 'Водный баланс' },
@@ -86,6 +87,7 @@ export const HabitsSection: React.FC = () => {
 
   const handleToggle = (id: string, completedToday: boolean) => {
     if (!completedToday) {
+      playHabitCheckSound();
       try {
         confetti({
           particleCount: 70,
@@ -96,6 +98,8 @@ export const HabitsSection: React.FC = () => {
       } catch {
         // no-op
       }
+    } else {
+      playClickSound();
     }
     toggleHabit(id);
   };
@@ -103,6 +107,7 @@ export const HabitsSection: React.FC = () => {
   const handleFreeze = (id: string) => {
     const success = freezeHabit(id);
     if (success) {
+      playStreakFreezeSound();
       try {
         // Ледяной сине-белый фейерверк
         confetti({
