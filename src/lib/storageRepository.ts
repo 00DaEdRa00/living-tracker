@@ -61,11 +61,19 @@ export async function getSqliteDb() {
         priority TEXT NOT NULL DEFAULT 'medium',
         category TEXT,
         icon TEXT,
+        image_url TEXT,
         due_date TEXT,
         created_at TEXT NOT NULL,
         completed_at TEXT
       );
     `);
+
+    // Migration guard: ensure image_url column exists if table was created in earlier sprint
+    try {
+      await dbInstance.execute('ALTER TABLE tasks ADD COLUMN image_url TEXT');
+    } catch {
+      // Column already exists
+    }
 
     return dbInstance;
   } catch (err) {
@@ -237,8 +245,8 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
   if (Array.isArray(state.tasks)) {
     for (const t of state.tasks) {
       await db.execute(
-        `INSERT INTO tasks (id, title, description, completed, priority, category, icon, due_date, created_at, completed_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        `INSERT INTO tasks (id, title, description, completed, priority, category, icon, image_url, due_date, created_at, completed_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          ON CONFLICT(id) DO UPDATE SET
            title = excluded.title,
            description = excluded.description,
@@ -246,6 +254,7 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
            priority = excluded.priority,
            category = excluded.category,
            icon = excluded.icon,
+           image_url = excluded.image_url,
            due_date = excluded.due_date,
            completed_at = excluded.completed_at`,
         [
@@ -256,6 +265,7 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
           t.priority || 'medium',
           t.category || null,
           t.icon || null,
+          t.imageUrl || null,
           t.dueDate || null,
           t.createdAt || new Date().toISOString(),
           t.completedAt || null,

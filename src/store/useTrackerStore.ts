@@ -111,6 +111,7 @@ const initialTasks: Task[] = [
     priority: 'high',
     category: 'Работа',
     icon: '💻',
+    imageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
   },
   {
     id: 'task-2',
@@ -133,6 +134,7 @@ const initialTasks: Task[] = [
     priority: 'medium',
     category: 'Здоровье/Спорт',
     icon: '🏋️',
+    imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80',
   },
   {
     id: 'task-4',

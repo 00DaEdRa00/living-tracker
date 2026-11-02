@@ -42,6 +42,7 @@ export interface Task {
   priority?: 'low' | 'medium' | 'high';
   category?: string;
   icon?: string;
+  imageUrl?: string;
 }
 
 export interface Budget {

@@ -14,6 +14,7 @@ import {
   Layers,
   ChevronDown,
   Timer,
+  Image as ImageIcon,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
@@ -48,6 +49,39 @@ export const TASK_ICON_PRESETS = [
   { icon: '🚀', label: 'Релиз/Проект', sphere: 'Работа' },
   { icon: '🎯', label: 'Главная цель', sphere: 'Работа' },
   { icon: '🔥', label: 'Срочно!', sphere: 'Все' },
+];
+
+export const TASK_IMAGE_PRESETS = [
+  {
+    label: 'Кодинг/Фокус',
+    icon: '💻',
+    url: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
+  },
+  {
+    label: 'Спорт/Зал',
+    icon: '🏋️',
+    url: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80',
+  },
+  {
+    label: 'Финансы/Инвест',
+    icon: '💰',
+    url: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=600&auto=format&fit=crop&q=80',
+  },
+  {
+    label: 'Дом/Уют',
+    icon: '💡',
+    url: 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=600&auto=format&fit=crop&q=80',
+  },
+  {
+    label: 'Книги/Учёба',
+    icon: '📚',
+    url: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&auto=format&fit=crop&q=80',
+  },
+  {
+    label: 'Природа/Отдых',
+    icon: '🌲',
+    url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&auto=format&fit=crop&q=80',
+  },
 ];
 
 function formatTimeLeft(dueDateStr: string, now: Date): {
@@ -129,6 +163,7 @@ export const TasksSection: React.FC = () => {
   const [formIcon, setFormIcon] = useState('💻');
   const [formPriority, setFormPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [formDueDate, setFormDueDate] = useState('');
+  const [formImageUrl, setFormImageUrl] = useState('');
 
   // Обновление таймера каждую минуту
   useEffect(() => {
@@ -157,6 +192,7 @@ export const TasksSection: React.FC = () => {
   const handleOpenModal = () => {
     setFormTitle('');
     setFormDescription('');
+    setFormImageUrl('');
     setFormSphere(selectedSphere === 'all' ? 'Работа' : selectedSphere);
     setFormIcon('💻');
     setFormPriority('medium');
@@ -191,6 +227,7 @@ export const TasksSection: React.FC = () => {
       category: formSphere,
       icon: formIcon,
       priority: formPriority,
+      imageUrl: formImageUrl.trim() || undefined,
       dueDate: formDueDate ? new Date(formDueDate).toISOString() : undefined,
     });
 
@@ -390,6 +427,21 @@ export const TasksSection: React.FC = () => {
                       : 'border-surface-border hover:border-slate-600 shadow-md'
                   }`}
                 >
+                  {/* Обложка-картинка карточки задачи */}
+                  {task.imageUrl && (
+                    <div className="relative h-28 -mx-4 -mt-4 mb-3 overflow-hidden rounded-t-3xl bg-slate-900 border-b border-surface-border">
+                      <img
+                        src={task.imageUrl}
+                        alt={task.title}
+                        className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
+                          task.completed ? 'grayscale contrast-75 opacity-40' : ''
+                        }`}
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-surface-card via-surface-card/20 to-transparent" />
+                    </div>
+                  )}
+
                   {/* Верхняя строка карточки: Сфера, Иконка и Действия */}
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-3">
@@ -736,6 +788,68 @@ export const TasksSection: React.FC = () => {
                       🔥 Высокий
                     </button>
                   </div>
+                </div>
+
+                {/* Обложка / Картинка карточки */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <ImageIcon className="w-3.5 h-3.5 text-accent" />
+                      Картинка-обложка (опционально)
+                    </label>
+                    {formImageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setFormImageUrl('')}
+                        className="text-[11px] text-rose-400 hover:underline"
+                      >
+                        Убрать картинку
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Быстрые пресеты красивых фото-обложек */}
+                  <div className="grid grid-cols-3 gap-2 mb-2">
+                    {TASK_IMAGE_PRESETS.map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setFormImageUrl(preset.url)}
+                        className={`flex items-center gap-1.5 p-1.5 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer ${
+                          formImageUrl === preset.url
+                            ? 'bg-accent/25 border-accent text-white shadow-sm'
+                            : 'bg-surface border-surface-border text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <span className="text-xs">{preset.icon}</span>
+                        <span className="truncate">{preset.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Поле для ввода произвольного URL картинки */}
+                  <input
+                    type="url"
+                    value={formImageUrl}
+                    onChange={(e) => setFormImageUrl(e.target.value)}
+                    placeholder="Или вставьте ссылку на картинку (https://...)"
+                    className="w-full px-4 py-2 rounded-2xl bg-surface border border-surface-border text-white text-xs focus:outline-none focus:border-accent placeholder:text-slate-600"
+                  />
+
+                  {/* Превью выбранной картинки */}
+                  {formImageUrl && (
+                    <div className="mt-2 relative h-20 rounded-2xl overflow-hidden border border-accent/40 bg-slate-900">
+                      <img
+                        src={formImageUrl}
+                        alt="Превью обложки"
+                        className="w-full h-full object-cover"
+                        onError={() => setFormImageUrl('')}
+                      />
+                      <span className="absolute bottom-1 right-2 text-[10px] bg-black/60 px-2 py-0.5 rounded text-white font-mono">
+                        Превью обложки
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Кнопка отправки */}

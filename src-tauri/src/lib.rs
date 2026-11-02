@@ -90,6 +90,7 @@ pub fn run() {
                 priority TEXT NOT NULL DEFAULT 'medium',
                 category TEXT,
                 icon TEXT,
+                image_url TEXT,
                 due_date TEXT,
                 created_at TEXT NOT NULL,
                 completed_at TEXT
@@ -103,6 +104,12 @@ pub fn run() {
                 value TEXT NOT NULL
             );
         ",
+        kind: MigrationKind::Up,
+    },
+    Migration {
+        version: 2,
+        description: "add_image_url_to_tasks",
+        sql: "ALTER TABLE tasks ADD COLUMN image_url TEXT;",
         kind: MigrationKind::Up,
     }];
 

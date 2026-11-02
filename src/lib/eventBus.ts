@@ -1,6 +1,6 @@
 import type { AppEvent, AppEventType, EventHandler, IEventBus } from '../types/tracker';
 
-class EventBus implements IEventBus {
+export class EventBus implements IEventBus {
   private listeners: Map<string, Set<EventHandler<any>>> = new Map();
 
   on<T extends AppEventType>(
