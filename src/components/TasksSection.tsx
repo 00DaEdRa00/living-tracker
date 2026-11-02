@@ -19,6 +19,7 @@ import {
 import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
 import type { Task } from '../types/tracker';
+import { PluginSlotRenderer } from './PluginSlots';
 
 export interface LifeSphere {
   id: string;
@@ -372,6 +373,9 @@ export const TasksSection: React.FC = () => {
             Показано: <strong className="text-white">{filteredTasks.length}</strong>
           </span>
         </div>
+
+        {/* Слот плагинов: task.actions */}
+        <PluginSlotRenderer slot="task.actions" className="pt-2 border-t border-surface-border/40" />
       </div>
 
       {/* Список карточек задач */}

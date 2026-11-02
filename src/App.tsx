@@ -21,6 +21,8 @@ import {
   Calendar,
   Volume2,
   VolumeX,
+  Blocks,
+  Globe,
 } from 'lucide-react';
 
 import { useTrackerStore, ACHIEVEMENTS, eventBus } from './store/useTrackerStore';
@@ -33,10 +35,14 @@ import QuickAddModal from './components/QuickAddModal';
 import TasksSection from './components/TasksSection';
 import HabitsSection from './components/HabitsSection';
 import HudWidget from './components/HudWidget';
+import { PluginSlotRenderer } from './components/PluginSlots';
+import { PluginMarketplace } from './components/PluginMarketplace';
+import { initializePlugins } from './plugins';
+import { SupportedLanguage, getTranslation } from './lib/i18n';
 import { isTauri, toggleHudWindow } from './lib/tauriBridge';
-import { playCoinSound } from './lib/soundFx';
+import { playCoinSound, playClickSound } from './lib/soundFx';
 
-export type DashboardTab = 'all' | 'tasks' | 'habits' | 'finances';
+export type DashboardTab = 'all' | 'tasks' | 'habits' | 'finances' | 'plugins';
 
 export const App: React.FC = () => {
   const isHudWindow =
@@ -47,6 +53,14 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<DashboardTab>('all');
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
   const [isHudPreviewOpen, setIsHudPreviewOpen] = useState(false);
+  const [language, setLanguage] = useState<SupportedLanguage>('ru');
+
+  // Инициализация системы плагинов при монтировании
+  useEffect(() => {
+    initializePlugins();
+  }, []);
+
+  const t = getTranslation(language);
 
   // Стор
   const budget = useTrackerStore((state) => state.budget);
@@ -98,8 +112,11 @@ export const App: React.FC = () => {
     eventBus.emit({ type: 'PAGE_VIEWED', payload: { page: newTab } });
   };
 
-  // Тексты в зависимости от тона
+  // Тексты в зависимости от тона с соблюдением Tone Localization Rule
   const getToneHeadline = () => {
+    if (language === 'en') {
+      return t.headlines[tone] || t.headlines.neutral;
+    }
     if (tone === 'neutral') return 'Финансовый и поведенческий дашборд';
     if (tone === 'ironic') return 'Имитация контроля над собственной жизнью';
     return 'Укроти бабки и не слей свою жизнь в унитаз!';
@@ -142,6 +159,21 @@ export const App: React.FC = () => {
 
           {/* Правая часть шапки: темы, тон, звук и XP */}
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+            {/* Переключатель языка (RU / EN) */}
+            <button
+              type="button"
+              onClick={() => {
+                const nextLang = language === 'ru' ? 'en' : 'ru';
+                setLanguage(nextLang);
+                playClickSound();
+              }}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-2xl bg-surface-card border border-surface-border hover:border-slate-500 text-xs font-bold text-slate-300 hover:text-white transition-all cursor-pointer"
+              title="Переключить язык (RU / EN)"
+            >
+              <Globe className="w-3.5 h-3.5 text-accent" />
+              <span className="uppercase text-[11px] font-mono">{language}</span>
+            </button>
+
             {/* Переключатель темы */}
             <ThemeSelector />
 
@@ -241,7 +273,7 @@ export const App: React.FC = () => {
               }`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
-              <span>Дашборд (Все блоки)</span>
+              <span>{t.tabs.dashboard}</span>
             </button>
 
             <button
@@ -254,7 +286,7 @@ export const App: React.FC = () => {
               }`}
             >
               <CheckSquare className="w-3.5 h-3.5" />
-              <span>Задачи</span>
+              <span>{t.tabs.tasks}</span>
               {activeTasksCount > 0 && (
                 <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-sky-500/30 text-sky-200 font-extrabold">
                   {activeTasksCount}
@@ -272,7 +304,7 @@ export const App: React.FC = () => {
               }`}
             >
               <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span>Привычки & Стрики</span>
+              <span>{t.tabs.habits}</span>
               {habitsRemainingCount > 0 && (
                 <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/30 text-amber-200 font-extrabold">
                   {habitsRemainingCount}
@@ -290,7 +322,20 @@ export const App: React.FC = () => {
               }`}
             >
               <CreditCard className="w-3.5 h-3.5" />
-              <span>Финансы</span>
+              <span>{t.tabs.finances}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabChange('plugins')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'plugins'
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-white hover:bg-surface-card/60'
+              }`}
+            >
+              <Blocks className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{t.tabs.plugins}</span>
             </button>
           </nav>
 
@@ -452,6 +497,11 @@ export const App: React.FC = () => {
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Слот плагинов: dashboard.widgets (Помодоро, Дзен-цитаты, P2P комната и др.) */}
+            <div className="pt-2">
+              <PluginSlotRenderer slot="dashboard.widgets" />
             </div>
 
             {/* Блок 1: Полноценная секция задач */}
@@ -665,6 +715,13 @@ export const App: React.FC = () => {
                 })}
               </div>
             </section>
+          </div>
+        )}
+
+        {/* Режим: Каталог дополнений и UI Слоты */}
+        {activeTab === 'plugins' && (
+          <div className="space-y-6">
+            <PluginMarketplace />
           </div>
         )}
       </main>

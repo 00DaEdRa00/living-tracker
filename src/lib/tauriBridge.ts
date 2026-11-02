@@ -96,3 +96,35 @@ export async function hideCurrentWindow(): Promise<void> {
     console.warn('[TauriBridge] Failed to hide current window:', err);
   }
 }
+
+/**
+ * Send native system desktop notification (Tauri or HTML5 Notification fallback)
+ */
+export async function sendDesktopNotification(title: string, body: string): Promise<void> {
+  if (isTauri()) {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      await invoke('plugin:notification|notify', {
+        options: {
+          title,
+          body,
+        },
+      });
+      return;
+    } catch {
+      // fallback to HTML5 Notification
+    }
+  }
+
+  if (typeof window !== 'undefined' && 'Notification' in window) {
+    if (Notification.permission === 'granted') {
+      new Notification(title, { body });
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then((perm) => {
+        if (perm === 'granted') {
+          new Notification(title, { body });
+        }
+      });
+    }
+  }
+}

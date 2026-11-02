@@ -264,3 +264,40 @@ export function playOverageAlarm(): void {
     console.warn('Audio playOverageAlarm error:', err);
   }
 }
+
+/**
+ * 6. playLevelUpSound() — торжественный восходящий звуковой арпеджио-аккорд
+ */
+export function playLevelUpSound(): void {
+  playAchievementFanfare();
+}
+
+/**
+ * 7. playClickSound() — быстрый тактильный щелчок переключателя
+ */
+export function playClickSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(800, now);
+    osc.frequency.exponentialRampToValueAtTime(300, now + 0.03);
+
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.03);
+  } catch (err) {
+    console.warn('Audio playClickSound error:', err);
+  }
+}
