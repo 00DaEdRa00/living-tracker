@@ -86,6 +86,20 @@ export async function getSqliteDb() {
     } catch {
       // Indexes already exist or unsupported
     }
+    try {
+      await dbInstance.execute(`
+        CREATE TABLE IF NOT EXISTS daily_summaries (
+          date TEXT PRIMARY KEY,
+          completed_tasks INTEGER NOT NULL DEFAULT 0,
+          completed_habits INTEGER NOT NULL DEFAULT 0,
+          total_spent REAL NOT NULL DEFAULT 0.0,
+          summary_json TEXT NOT NULL DEFAULT '{}',
+          created_at TEXT NOT NULL
+        )
+      `);
+    } catch {
+      // Table already exists
+    }
 
     return dbInstance;
   } catch (err) {

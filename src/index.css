@@ -63,6 +63,16 @@
   --color-accent-glow: 80 250 123;   /* #50fa7b Cyber Green */
 }
 
+[data-theme='tokyo'],
+.theme-tokyo {
+  --color-bg-app: 26 27 38;          /* #1a1b26 Tokyo Night */
+  --color-bg-surface: 36 40 59;      /* #24283b */
+  --color-bg-card: 41 46 66;         /* #292e42 */
+  --color-border-surface: 65 74 116; /* #414868 */
+  --color-accent: 122 162 247;       /* #7aa2f7 Tokyo Neon Sky */
+  --color-accent-glow: 187 154 247;  /* #bb9af7 Tokyo Neon Violet */
+}
+
 @layer base {
   html,
   body {

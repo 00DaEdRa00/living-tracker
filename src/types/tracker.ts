@@ -4,7 +4,7 @@
 
 export type ToneMode = 'neutral' | 'ironic' | 'sassy';
 
-export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald' | 'synthwave' | 'nord' | 'dracula';
+export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald' | 'synthwave' | 'nord' | 'dracula' | 'tokyo';
 
 export type TransactionType = 'expense' | 'income';
 

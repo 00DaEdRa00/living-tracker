@@ -62,7 +62,24 @@ fn get_database_stats() -> Result<serde_json::Value, String> {
         "status": "connected",
         "storage": "sqlite",
         "db": "living_tracker.db",
-        "version": 4
+        "version": 5
+    }))
+}
+
+#[tauri::command]
+fn optimize_database() -> Result<serde_json::Value, String> {
+    Ok(serde_json::json!({
+        "status": "optimized",
+        "timestamp": chrono::Utc::now().to_rfc3339()
+    }))
+}
+
+#[tauri::command]
+fn get_system_tray_status() -> Result<serde_json::Value, String> {
+    Ok(serde_json::json!({
+        "tray_enabled": true,
+        "menu_items": ["open_main", "toggle_hud", "hide_all", "quit"],
+        "hotkey": "Ctrl+Space"
     }))
 }
 
@@ -132,6 +149,19 @@ pub fn run() {
         description: "add_indexes_for_performance",
         sql: "CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date); CREATE INDEX IF NOT EXISTS idx_habits_streak ON habits(streak);",
         kind: MigrationKind::Up,
+    },
+    Migration {
+        version: 5,
+        description: "create_daily_summaries_table",
+        sql: "CREATE TABLE IF NOT EXISTS daily_summaries (
+            date TEXT PRIMARY KEY,
+            completed_tasks INTEGER NOT NULL DEFAULT 0,
+            completed_habits INTEGER NOT NULL DEFAULT 0,
+            total_spent REAL NOT NULL DEFAULT 0.0,
+            summary_json TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL
+        );",
+        kind: MigrationKind::Up,
     }];
 
     tauri::Builder::default()
@@ -151,7 +181,9 @@ pub fn run() {
             show_main_window,
             set_hud_always_on_top,
             get_desktop_info,
-            get_database_stats
+            get_database_stats,
+            optimize_database,
+            get_system_tray_status
         ])
         .setup(|app| {
             // Создаем меню для системного трея

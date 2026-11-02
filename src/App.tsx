@@ -23,6 +23,7 @@ import {
   VolumeX,
   Blocks,
   Globe,
+  Share2,
 } from 'lucide-react';
 
 import { useTrackerStore, ACHIEVEMENTS, eventBus } from './store/useTrackerStore';
@@ -36,6 +37,7 @@ import QuickAddModal from './components/QuickAddModal';
 import TasksSection from './components/TasksSection';
 import HabitsSection from './components/HabitsSection';
 import HudWidget from './components/HudWidget';
+import { DailySummaryShareModal } from './components/DailySummaryShareModal';
 import { PluginSlotRenderer } from './components/PluginSlots';
 import { PluginMarketplace } from './components/PluginMarketplace';
 import { initializePlugins } from './plugins';
@@ -55,6 +57,7 @@ export const App: React.FC = () => {
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
   const [isHudPreviewOpen, setIsHudPreviewOpen] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [isDailySummaryOpen, setIsDailySummaryOpen] = useState(false);
   const [language, setLanguage] = useState<SupportedLanguage>('ru');
 
   // Инициализация системы плагинов при монтировании
@@ -280,6 +283,20 @@ export const App: React.FC = () => {
               <kbd className="hidden lg:inline-block text-[9px] px-1 py-0.2 rounded font-mono bg-surface border border-surface-border text-slate-400">
                 Ctrl+Space
               </kbd>
+            </button>
+
+            {/* Кнопка дневной сводки и шеринга */}
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setIsDailySummaryOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-surface-card border border-surface-border hover:border-emerald-500/50 text-slate-300 hover:text-white text-xs font-bold transition-all cursor-pointer shadow-sm"
+              title="Открыть дневную сводку продуктивности и поделиться карточкой"
+            >
+              <Share2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden md:inline">Сводка дня</span>
             </button>
 
             {/* Баланс очков / XP */}
@@ -802,6 +819,12 @@ export const App: React.FC = () => {
       <QuickAddModal
         isOpen={isAddExpenseOpen}
         onClose={() => setIsAddExpenseOpen(false)}
+      />
+
+      {/* Модалка дневной сводки и шеринга карточки */}
+      <DailySummaryShareModal
+        isOpen={isDailySummaryOpen}
+        onClose={() => setIsDailySummaryOpen(false)}
       />
 
       {/* Плавающий HUD-виджет для браузерного превью */}

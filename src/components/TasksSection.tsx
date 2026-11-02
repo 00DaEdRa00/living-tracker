@@ -21,6 +21,7 @@ import {
   Edit3,
   Share2,
   ListTodo,
+  Upload,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
@@ -33,6 +34,7 @@ import {
   playEditSound,
   playSubtaskSound,
   playSnoozeSound,
+  playUploadSound,
 } from '../lib/soundFx';
 import { sendDesktopNotification } from '../lib/tauriBridge';
 import { TaskShareModal } from './TaskShareModal';
@@ -373,6 +375,23 @@ export const TasksSection: React.FC = () => {
       .toISOString()
       .slice(0, 16);
     setFormDueDate(localIso);
+  };
+
+  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        if (isEdit) {
+          setEditImageUrl(reader.result);
+        } else {
+          setFormImageUrl(reader.result);
+        }
+        playUploadSound();
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleCreateTask = (e: React.FormEvent) => {
@@ -1669,8 +1688,20 @@ export const TasksSection: React.FC = () => {
                     value={formImageUrl}
                     onChange={(e) => setFormImageUrl(e.target.value)}
                     placeholder="Или вставьте ссылку на картинку (https://...)"
-                    className="w-full px-4 py-2 rounded-2xl bg-surface border border-surface-border text-white text-xs focus:outline-none focus:border-accent placeholder:text-slate-600"
+                    className="w-full px-4 py-2 rounded-2xl bg-surface border border-surface-border text-white text-xs focus:outline-none focus:border-accent placeholder:text-slate-600 mb-2"
                   />
+
+                  {/* Загрузка локального фото */}
+                  <label className="flex items-center justify-center gap-2 p-2 rounded-2xl bg-surface hover:bg-surface-card border border-dashed border-surface-border hover:border-accent text-xs font-semibold text-slate-300 hover:text-white cursor-pointer transition-all">
+                    <Upload className="w-3.5 h-3.5 text-accent" />
+                    <span>Загрузить фото с устройства</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleImageFileUpload(e, false)}
+                    />
+                  </label>
 
                   {/* Превью выбранной картинки */}
                   {formImageUrl && (
@@ -1810,9 +1841,31 @@ export const TasksSection: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Дедлайн (дата и время)
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-300">
+                      Дедлайн (дата и время)
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
+                          setEditDueDate(new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16));
+                        }}
+                        className="text-[10px] text-accent hover:underline cursor-pointer"
+                      >
+                        Завтра
+                      </button>
+                      <span className="text-slate-600">•</span>
+                      <button
+                        type="button"
+                        onClick={() => setEditDueDate('')}
+                        className="text-[10px] text-slate-400 hover:underline cursor-pointer"
+                      >
+                        Снять
+                      </button>
+                    </div>
+                  </div>
                   <input
                     type="datetime-local"
                     value={editDueDate}
@@ -1822,16 +1875,37 @@ export const TasksSection: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Ссылка на картинку-обложку
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-300">
+                      Картинка-обложка
+                    </label>
+                    {editImageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setEditImageUrl('')}
+                        className="text-[10px] text-rose-400 hover:underline cursor-pointer"
+                      >
+                        Удалить
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="url"
                     value={editImageUrl}
                     onChange={(e) => setEditImageUrl(e.target.value)}
                     placeholder="https://images.unsplash.com/..."
-                    className="w-full px-4 py-2 rounded-2xl bg-surface border border-surface-border text-white text-xs focus:outline-none focus:border-accent"
+                    className="w-full px-4 py-2 rounded-2xl bg-surface border border-surface-border text-white text-xs focus:outline-none focus:border-accent mb-2"
                   />
+                  <label className="flex items-center justify-center gap-2 p-2 rounded-2xl bg-surface hover:bg-surface-card border border-dashed border-surface-border hover:border-accent text-xs font-semibold text-slate-300 hover:text-white cursor-pointer transition-all">
+                    <Upload className="w-3.5 h-3.5 text-accent" />
+                    <span>Загрузить фото с устройства</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleImageFileUpload(e, true)}
+                    />
+                  </label>
                 </div>
 
                 <div className="pt-2 flex items-center justify-end gap-2">

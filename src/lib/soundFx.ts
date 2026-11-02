@@ -654,3 +654,98 @@ export function playShieldSound(): void {
     console.warn('Audio playShieldSound error:', err);
   }
 }
+
+/**
+ * 18. playSummaryFanfareSound() — праздничное восходящее арпеджио для дневной сводки
+ */
+export function playSummaryFanfareSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.18, now + idx * 0.08 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.08 + 0.4);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + idx * 0.08);
+      osc.stop(now + idx * 0.08 + 0.42);
+    });
+  } catch (err) {
+    console.warn('Audio playSummaryFanfareSound error:', err);
+  }
+}
+
+/**
+ * 19. playUploadSound() — футуристический высокочастотный sweep при прикреплении изображения
+ */
+export function playUploadSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, now);
+    osc.frequency.exponentialRampToValueAtTime(1760, now + 0.14);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.2, now + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.2);
+  } catch (err) {
+    console.warn('Audio playUploadSound error:', err);
+  }
+}
+
+/**
+ * 20. playQuickDateSound() — резкий приятный клик выбора быстрого дедлайна
+ */
+export function playQuickDateSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(800, now);
+    osc.frequency.exponentialRampToValueAtTime(400, now + 0.04);
+
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.06);
+  } catch (err) {
+    console.warn('Audio playQuickDateSound error:', err);
+  }
+}

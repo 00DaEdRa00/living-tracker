@@ -62,6 +62,14 @@ const THEME_OPTIONS: ThemeOption[] = [
     accentColor: '#bd93f9',
     desc: 'Vampire Violet & Cyber Green (#1a1a24)',
   },
+  {
+    id: 'tokyo',
+    label: 'Tokyo Night',
+    shortLabel: 'Tokyo',
+    icon: '🗼',
+    accentColor: '#7aa2f7',
+    desc: 'Tokyo Night Indigo & Neon Sky (#1a1b26)',
+  },
 ];
 
 export const ThemeSelector: React.FC = () => {

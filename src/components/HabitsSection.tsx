@@ -143,7 +143,7 @@ export const HabitsSection: React.FC = () => {
   const [sharingHabit, setSharingHabit] = useState<Habit | null>(null);
   const [heatmapDaysCount, setHeatmapDaysCount] = useState<28 | 56>(28);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed' | 'frozen'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [hoveredDay, setHoveredDay] = useState<{
     habitId: string;
@@ -312,6 +312,9 @@ export const HabitsSection: React.FC = () => {
     if (statusFilter === 'completed' && !h.completedToday) {
       return false;
     }
+    if (statusFilter === 'frozen' && !(h.frozenDates && h.frozenDates.includes(today))) {
+      return false;
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchTitle = h.title.toLowerCase().includes(q);
@@ -457,6 +460,20 @@ export const HabitsSection: React.FC = () => {
               }`}
             >
               Закрыто ({completedTodayCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setStatusFilter('frozen');
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                statusFilter === 'frozen'
+                  ? 'bg-sky-500/20 text-sky-300 font-bold shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Заморожены ({habits.filter((h) => h.frozenDates && h.frozenDates.includes(today)).length})
             </button>
           </div>
 

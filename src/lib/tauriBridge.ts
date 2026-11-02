@@ -84,7 +84,7 @@ export async function getDatabaseStats(): Promise<DatabaseStats | null> {
       status: 'browser_fallback',
       storage: 'localStorage',
       db: 'in-memory/web',
-      version: 4,
+      version: 5,
     };
   }
   try {
@@ -92,6 +92,42 @@ export async function getDatabaseStats(): Promise<DatabaseStats | null> {
     return await invoke<DatabaseStats>('get_database_stats');
   } catch (err) {
     console.warn('[TauriBridge] Failed to get database stats:', err);
+    return null;
+  }
+}
+
+export async function optimizeDatabase(): Promise<{ status: string; timestamp?: string } | null> {
+  if (!isTauri()) {
+    return { status: 'browser_indexed_simulated' };
+  }
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    return await invoke<{ status: string; timestamp?: string }>('optimize_database');
+  } catch (err) {
+    console.warn('[TauriBridge] Failed to optimize database:', err);
+    return null;
+  }
+}
+
+export interface SystemTrayStatus {
+  tray_enabled: boolean;
+  menu_items: string[];
+  hotkey: string;
+}
+
+export async function getSystemTrayStatus(): Promise<SystemTrayStatus | null> {
+  if (!isTauri()) {
+    return {
+      tray_enabled: true,
+      menu_items: ['open_main', 'toggle_hud', 'hide_all', 'quit'],
+      hotkey: 'Ctrl+Space',
+    };
+  }
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    return await invoke<SystemTrayStatus>('get_system_tray_status');
+  } catch (err) {
+    console.warn('[TauriBridge] Failed to get system tray status:', err);
     return null;
   }
 }
