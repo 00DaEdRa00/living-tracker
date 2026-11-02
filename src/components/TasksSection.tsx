@@ -22,6 +22,7 @@ import {
   Share2,
   ListTodo,
   Upload,
+  Pin,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
@@ -245,6 +246,7 @@ export const TasksSection: React.FC = () => {
   const advanceRecurringTask = useTrackerStore((state) => state.advanceRecurringTask);
   const addTask = useTrackerStore((state) => state.addTask);
   const updateTask = useTrackerStore((state) => state.updateTask);
+  const toggleTaskPin = useTrackerStore((state) => state.toggleTaskPin);
   const deleteTask = useTrackerStore((state) => state.deleteTask);
   const clearCompletedTasks = useTrackerStore((state) => state.clearCompletedTasks);
   const toggleSubtask = useTrackerStore((state) => state.toggleSubtask);
@@ -534,8 +536,11 @@ export const TasksSection: React.FC = () => {
     return matchesSphere && matchesStatus && matchesPriority && matchesSearch && matchesDeadline;
   });
 
-  // Сортировка задач
+  // Сортировка задач (закрепленные задачи всегда наверху)
   const sortedTasks = [...filteredTasks].sort((a, b) => {
+    if (Boolean(a.isPinned) !== Boolean(b.isPinned)) {
+      return a.isPinned ? -1 : 1;
+    }
     if (sortMode === 'urgency') {
       const aDue = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
       const bDue = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
@@ -1285,6 +1290,23 @@ export const TasksSection: React.FC = () => {
                             <span>{task.estimatedMinutes} мин</span>
                           </span>
                         )}
+
+                        {/* Кнопка закрепления задачи */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            toggleTaskPin(task.id);
+                            playClickSound();
+                          }}
+                          title={task.isPinned ? 'Открепить задачу' : 'Закрепить задачу наверху'}
+                          className={`p-1 rounded-lg transition-all cursor-pointer ${
+                            task.isPinned
+                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                              : 'opacity-0 group-hover:opacity-100 text-slate-500 hover:text-amber-400 hover:bg-surface'
+                          }`}
+                        >
+                          <Pin className={`w-3.5 h-3.5 ${task.isPinned ? 'fill-amber-300' : ''}`} />
+                        </button>
 
                         {/* Кнопка запуска таймера фокуса Pomodoro */}
                         {!task.completed && (

@@ -726,6 +726,14 @@ export const useTrackerStore = create<TrackerStore>()(
           }));
         },
 
+        toggleTaskPin: (taskId) => {
+          setState((state) => ({
+            tasks: state.tasks.map((t) =>
+              t.id === taskId ? { ...t, isPinned: !t.isPinned } : t
+            ),
+          }));
+        },
+
         toggleSubtask: (taskId, subtaskId) => {
           setState((state) => ({
             tasks: state.tasks.map((t) => {

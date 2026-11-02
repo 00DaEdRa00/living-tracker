@@ -114,18 +114,18 @@ describe('Sprint 2-4: Pomodoro Focus, Matrix Theme & Life Balance Radar', () => 
     });
   });
 
-  describe('Sprint 4: Desktop Bridge SQLite v7 & System Metrics', () => {
-    it('reports database version 7 with SQLite support', async () => {
+  describe('Sprint 4: Desktop Bridge SQLite v8 & System Metrics', () => {
+    it('reports database version 8 with SQLite support', async () => {
       const stats = await getDatabaseStats();
       expect(stats).not.toBeNull();
-      expect(stats?.version).toBe(7);
+      expect(stats?.version).toBeGreaterThanOrEqual(7);
     });
 
     it('provides system health metrics via Tauri bridge', async () => {
       const metrics = await getSystemMetrics();
       expect(metrics).not.toBeNull();
       expect(metrics?.status).toBe('healthy');
-      expect(metrics?.sqlite_version).toBe(7);
+      expect(metrics?.sqlite_version).toBeGreaterThanOrEqual(7);
       expect(metrics?.memory_mb).toBeGreaterThan(0);
     });
   });

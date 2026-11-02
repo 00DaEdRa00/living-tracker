@@ -84,7 +84,7 @@ export async function getDatabaseStats(): Promise<DatabaseStats | null> {
       status: 'browser_fallback',
       storage: 'localStorage',
       db: 'in-memory/web',
-      version: 7,
+      version: 8,
     };
   }
   try {
@@ -111,7 +111,7 @@ export async function getSystemMetrics(): Promise<SystemMetrics | null> {
       memory_mb: 42.5,
       hud_active: true,
       engine: 'browser-simulation',
-      sqlite_version: 7,
+      sqlite_version: 8,
     };
   }
   try {

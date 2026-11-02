@@ -93,6 +93,16 @@
   --color-accent-glow: 74 222 128;   /* #4ade80 Matrix Glow */
 }
 
+[data-theme='sunset'],
+.theme-sunset {
+  --color-bg-app: 24 13 13;          /* #180d0d Deep Sunset Amber & Ruby */
+  --color-bg-surface: 38 18 18;      /* #261212 */
+  --color-bg-card: 54 24 24;         /* #361818 */
+  --color-border-surface: 99 38 38;  /* #632626 */
+  --color-accent: 245 158 11;        /* #f59e0b Sunset Amber */
+  --color-accent-glow: 251 191 36;   /* #fbbf24 Warm Gold Glow */
+}
+
 @layer base {
   html,
   body {

@@ -33,6 +33,7 @@ import {
 } from '../lib/soundFx';
 import { sendDesktopNotification } from '../lib/tauriBridge';
 import { HabitShareModal } from './HabitShareModal';
+import { HabitMatrixShareModal } from './HabitMatrixShareModal';
 
 export function getStreakBadge(streak: number): { label: string; badgeClass: string } | null {
   if (streak >= 30) {
@@ -150,7 +151,8 @@ export const HabitsSection: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [sharingHabit, setSharingHabit] = useState<Habit | null>(null);
-  const [heatmapDaysCount, setHeatmapDaysCount] = useState<28 | 56>(28);
+  const [isMatrixShareOpen, setIsMatrixShareOpen] = useState(false);
+  const [heatmapDaysCount, setHeatmapDaysCount] = useState<28 | 56 | 84>(28);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed' | 'frozen'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -366,15 +368,30 @@ export const HabitsSection: React.FC = () => {
           </div>
         </div>
 
-        {/* Правая часть: кнопка добавления */}
-        <button
-          type="button"
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 font-bold text-sm shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
-        >
-          <Plus className="w-4 h-4 stroke-[3]" />
-          <span>Добавить привычку</span>
-        </button>
+        {/* Правая часть: кнопка шеринга матрицы и добавления */}
+        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+          <button
+            type="button"
+            onClick={() => {
+              playClickSound();
+              setIsMatrixShareOpen(true);
+            }}
+            className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-surface hover:bg-slate-800 text-slate-200 hover:text-amber-400 font-bold text-xs border border-surface-border transition-all cursor-pointer shadow-md"
+            title="Поделиться матрицей привычек и дисциплины (html2canvas)"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span>Матрица</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 font-bold text-sm shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4 stroke-[3]" />
+            <span>Добавить привычку</span>
+          </button>
+        </div>
       </div>
 
       {/* Информационная плашка о механике Streak Freeze */}
@@ -771,17 +788,35 @@ export const HabitsSection: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <span className="flex items-center gap-1.5">
                             <Calendar className="w-3.5 h-3.5 text-accent" />
-                            <span>История стабильности ({heatmapDaysCount === 28 ? '4 недели' : '8 недель'})</span>
+                            <span>
+                              История стабильности (
+                              {heatmapDaysCount === 28
+                                ? '4 недели'
+                                : heatmapDaysCount === 56
+                                ? '8 недель'
+                                : '12 недель'}
+                              )
+                            </span>
                           </span>
                           <button
                             type="button"
                             onClick={() => {
                               playClickSound();
-                              setHeatmapDaysCount(heatmapDaysCount === 28 ? 56 : 28);
+                              setHeatmapDaysCount(
+                                heatmapDaysCount === 28
+                                  ? 56
+                                  : heatmapDaysCount === 56
+                                  ? 84
+                                  : 28
+                              );
                             }}
                             className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-surface hover:bg-slate-800 text-slate-300 hover:text-accent border border-surface-border transition-colors cursor-pointer"
                           >
-                            {heatmapDaysCount === 28 ? 'Показать 8 нед' : 'Показать 4 нед'}
+                            {heatmapDaysCount === 28
+                              ? '8 нед'
+                              : heatmapDaysCount === 56
+                              ? '12 нед'
+                              : '4 нед'}
                           </button>
                         </div>
                         <div className="flex items-center gap-2 text-[10px]">
@@ -1072,6 +1107,12 @@ export const HabitsSection: React.FC = () => {
           onClose={() => setSharingHabit(null)}
         />
       )}
+
+      {/* Модальное окно шеринга матрицы привычек (html2canvas) */}
+      <HabitMatrixShareModal
+        isOpen={isMatrixShareOpen}
+        onClose={() => setIsMatrixShareOpen(false)}
+      />
 
       {/* Модальное окно редактирования привычки */}
       {editingHabit && (

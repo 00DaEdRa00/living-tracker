@@ -65,6 +65,7 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
   const freezeHabit = useTrackerStore((state) => state.freezeHabit);
   const freezeAllHabitsToday = useTrackerStore((state) => state.freezeAllHabitsToday);
   const toggleTask = useTrackerStore((state) => state.toggleTask);
+  const toggleTaskPin = useTrackerStore((state) => state.toggleTaskPin);
   const advanceRecurringTask = useTrackerStore((state) => state.advanceRecurringTask);
   const addTask = useTrackerStore((state) => state.addTask);
   const addTransaction = useTrackerStore((state) => state.addTransaction);
@@ -114,10 +115,13 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
   const isOverBudget = budget.spent > budget.monthlyLimit;
   const remaining = Math.max(0, budget.monthlyLimit - budget.spent);
 
-  // Urgent tasks (uncompleted, prioritized)
+  // Urgent tasks (uncompleted, prioritized, pinned first)
   const urgentTasks = tasks
     .filter((t) => !t.completed)
     .sort((a, b) => {
+      if (Boolean(a.isPinned) !== Boolean(b.isPinned)) {
+        return a.isPinned ? -1 : 1;
+      }
       if (a.priority === 'high' && b.priority !== 'high') return -1;
       if (b.priority === 'high' && a.priority !== 'high') return 1;
       return 0;
@@ -608,7 +612,9 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
               </button>
             </form>
 
-            {tasks.map((t) => (
+            {[...tasks]
+              .sort((a, b) => (Boolean(a.isPinned) !== Boolean(b.isPinned) ? (a.isPinned ? -1 : 1) : 0))
+              .map((t) => (
               <div
                 key={t.id}
                 onClick={() => handleTaskClick(t.id)}
@@ -622,11 +628,16 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
                   <span className="text-base">{t.icon || '📌'}</span>
                   <div>
                     <div
-                      className={`text-xs font-medium text-white truncate max-w-[200px] ${
+                      className={`text-xs font-medium text-white truncate max-w-[200px] flex items-center gap-1.5 ${
                         t.completed ? 'line-through text-slate-500' : ''
                       }`}
                     >
-                      {t.title}
+                      <span>{t.title}</span>
+                      {t.isPinned && (
+                        <span className="text-amber-400 font-bold" title="Закреплено">
+                          📌
+                        </span>
+                      )}
                     </div>
                     {t.dueDate && (
                       <div className="text-[9px] text-amber-400 flex items-center gap-1">
@@ -829,7 +840,7 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
           </span>
           <div className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span>{isTauri() ? 'Tauri 2.0 • SQLite v7' : 'HUD Preview • SQLite v7'}</span>
+            <span>{isTauri() ? 'Tauri 2.0 • SQLite v8' : 'HUD Preview • SQLite v8'}</span>
           </div>
         </div>
       </div>

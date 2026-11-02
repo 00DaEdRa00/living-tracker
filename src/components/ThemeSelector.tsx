@@ -86,6 +86,14 @@ const THEME_OPTIONS: ThemeOption[] = [
     accentColor: '#22c55e',
     desc: 'Hacker Neon Green & Cyber Matrix (#0b1a0e)',
   },
+  {
+    id: 'sunset',
+    label: 'Sunset',
+    shortLabel: 'Sunset',
+    icon: '🌅',
+    accentColor: '#f59e0b',
+    desc: 'Warm Sunset Amber & Ruby (#180d0d)',
+  },
 ];
 
 export const ThemeSelector: React.FC = () => {

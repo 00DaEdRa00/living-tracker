@@ -62,7 +62,7 @@ fn get_database_stats() -> Result<serde_json::Value, String> {
         "status": "connected",
         "storage": "sqlite",
         "db": "living_tracker.db",
-        "version": 7
+        "version": 8
     }))
 }
 
@@ -73,7 +73,7 @@ fn get_system_metrics() -> Result<serde_json::Value, String> {
         "memory_mb": 42.5,
         "hud_active": true,
         "engine": "tauri-2.0-rust",
-        "sqlite_version": 7
+        "sqlite_version": 8
     }))
 }
 
@@ -202,6 +202,16 @@ pub fn run() {
                 duration_minutes INTEGER NOT NULL,
                 completed_at TEXT NOT NULL
             );
+        ",
+        kind: MigrationKind::Up,
+    },
+    Migration {
+        version: 8,
+        description: "add_task_pin_and_tags",
+        sql: "
+            ALTER TABLE tasks ADD COLUMN is_pinned INTEGER DEFAULT 0;
+            ALTER TABLE tasks ADD COLUMN tags_json TEXT DEFAULT '[]';
+            CREATE INDEX IF NOT EXISTS idx_tasks_is_pinned ON tasks(is_pinned);
         ",
         kind: MigrationKind::Up,
     }];

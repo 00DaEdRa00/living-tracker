@@ -4,7 +4,7 @@
 
 export type ToneMode = 'neutral' | 'ironic' | 'sassy';
 
-export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald' | 'synthwave' | 'nord' | 'dracula' | 'tokyo' | 'crimson' | 'matrix';
+export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald' | 'synthwave' | 'nord' | 'dracula' | 'tokyo' | 'crimson' | 'matrix' | 'sunset';
 
 export type TransactionType = 'expense' | 'income';
 
@@ -55,6 +55,8 @@ export interface Task {
   checklist?: Subtask[];
   recurrence?: TaskRecurrence;
   estimatedMinutes?: number;
+  isPinned?: boolean;
+  tags?: string[];
 }
 
 export interface Budget {
@@ -156,6 +158,7 @@ export interface TrackerActions {
   updateHabit: (id: string, updates: Partial<Habit>) => void;
   addTask: (task: Omit<Task, 'id' | 'completed' | 'createdAt'> & { id?: string; createdAt?: string }) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
+  toggleTaskPin: (taskId: string) => void;
   toggleSubtask: (taskId: string, subtaskId: string) => void;
   addSubtask: (taskId: string, title: string) => void;
   removeSubtask: (taskId: string, subtaskId: string) => void;

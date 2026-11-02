@@ -132,6 +132,21 @@ export async function getSqliteDb() {
     } catch {
       // Table already exists
     }
+    try {
+      await dbInstance.execute("ALTER TABLE tasks ADD COLUMN is_pinned INTEGER DEFAULT 0");
+    } catch {
+      // Column already exists
+    }
+    try {
+      await dbInstance.execute("ALTER TABLE tasks ADD COLUMN tags_json TEXT DEFAULT '[]'");
+    } catch {
+      // Column already exists
+    }
+    try {
+      await dbInstance.execute("CREATE INDEX IF NOT EXISTS idx_tasks_is_pinned ON tasks(is_pinned)");
+    } catch {
+      // Index already exists
+    }
 
     return dbInstance;
   } catch (err) {
@@ -310,8 +325,8 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
   if (Array.isArray(state.tasks)) {
     for (const t of state.tasks) {
       await db.execute(
-        `INSERT INTO tasks (id, title, description, completed, priority, category, icon, image_url, checklist_json, recurrence, estimated_minutes, due_date, created_at, completed_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        `INSERT INTO tasks (id, title, description, completed, priority, category, icon, image_url, checklist_json, recurrence, estimated_minutes, due_date, is_pinned, tags_json, created_at, completed_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
          ON CONFLICT(id) DO UPDATE SET
            title = excluded.title,
            description = excluded.description,
@@ -324,6 +339,8 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
            recurrence = excluded.recurrence,
            estimated_minutes = excluded.estimated_minutes,
            due_date = excluded.due_date,
+           is_pinned = excluded.is_pinned,
+           tags_json = excluded.tags_json,
            completed_at = excluded.completed_at`,
         [
           t.id,
@@ -338,6 +355,8 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
           t.recurrence || 'none',
           t.estimatedMinutes || 0,
           t.dueDate || null,
+          t.isPinned ? 1 : 0,
+          JSON.stringify(t.tags || []),
           t.createdAt || new Date().toISOString(),
           t.completedAt || null,
         ]

@@ -1001,6 +1001,105 @@ export function playCyberpunkAlertSound(): void {
 }
 
 /**
+ * 28. playWaterDropSound() — реалистичная капля воды для ритуалов здоровья
+ */
+export function playWaterDropSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const vol = getMasterVolume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(950, now);
+    osc.frequency.exponentialRampToValueAtTime(1400, now + 0.05);
+    osc.frequency.exponentialRampToValueAtTime(320, now + 0.14);
+
+    gain.gain.setValueAtTime(0.18 * vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.14);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.15);
+  } catch (err) {
+    console.warn('Audio playWaterDropSound error:', err);
+  }
+}
+
+/**
+ * 29. playFlameSound() — эффект разгорающегося огня стрика
+ */
+export function playFlameSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const vol = getMasterVolume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(120, now);
+    osc.frequency.exponentialRampToValueAtTime(340, now + 0.08);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.22);
+
+    gain.gain.setValueAtTime(0.2 * vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.23);
+  } catch (err) {
+    console.warn('Audio playFlameSound error:', err);
+  }
+}
+
+/**
+ * 30. playBadgeUnlockSound() — аккорд открытия нового значка рубежа
+ */
+export function playBadgeUnlockSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const vol = getMasterVolume();
+    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = now + idx * 0.05;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      gain.gain.setValueAtTime(0.12 * vol, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.25);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.26);
+    });
+  } catch (err) {
+    console.warn('Audio playBadgeUnlockSound error:', err);
+  }
+}
+
+/**
  * Каталог доступных процедурных Web Audio FX для звукового теста и превью
  */
 export interface SoundPreset {
@@ -1014,12 +1113,15 @@ export interface SoundPreset {
 export const SOUND_FX_CATALOG: SoundPreset[] = [
   { id: 'coin', name: 'Звон монет', description: 'Расход / доход бюджета', icon: '🪙', play: playCoinSound },
   { id: 'habit', name: 'Чек-ин привычки', description: 'Отметка привычки на сегодня', icon: '💧', play: playHabitCheckSound },
+  { id: 'water', name: 'Капля воды', description: 'Здоровье и водный баланс', icon: '💧', play: playWaterDropSound },
+  { id: 'flame', name: 'Огонь стрика', description: 'Разжигание серии активности', icon: '🔥', play: playFlameSound },
   { id: 'task', name: 'Выполнение задачи', description: 'Чекбокс закрытия дела', icon: '🎯', play: playTaskCompleteSound },
   { id: 'recurrence', name: 'Цикл повтора', description: 'Перенос повторяющейся задачи', icon: '🔁', play: playRecurrenceSound },
   { id: 'freeze', name: 'Заморозка стрика', description: 'Streak Freeze от выгорания', icon: '❄️', play: playStreakFreezeSound },
   { id: 'shield', name: 'Активация щита', description: 'Защита всех стриков на день', icon: '🛡️', play: playShieldSound },
   { id: 'shield_earned', name: 'Получение щита', description: 'Награда за стрик 7+ дней', icon: '💎', play: playFreezeShieldEarnedSound },
   { id: 'milestone', name: 'Стрик-рекорд', description: 'Рубеж 7, 14, 21, 30 дней', icon: '⚡', play: playStreakMilestoneSound },
+  { id: 'badge', name: 'Значок рубежа', description: 'Награда за юбилейный стрик', icon: '🎖️', play: playBadgeUnlockSound },
   { id: 'fanfare', name: 'Ачивка', description: 'Разблокировка трофея', icon: '🎺', play: playAchievementFanfare },
   { id: 'level_up', name: 'Повышение уровня', description: 'Новый ранг и победа', icon: '🏆', play: playLevelUpSound },
   { id: 'timer', name: 'Таймер Помодоро', description: 'Завершение фокус-раунда', icon: '⏱️', play: playTimerCompleteSound },
