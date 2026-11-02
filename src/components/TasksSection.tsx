@@ -86,7 +86,7 @@ export const TASK_IMAGE_PRESETS = [
   },
 ];
 
-function formatTimeLeft(dueDateStr: string, now: Date): {
+export function formatTimeLeft(dueDateStr: string, now: Date): {
   status: 'overdue' | 'urgent' | 'warning' | 'safe';
   text: string;
   pillClass: string;

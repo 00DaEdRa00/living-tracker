@@ -82,8 +82,10 @@ export async function getSqliteDb() {
   }
 }
 
+const inMemoryFallback = new Map<string, string>();
+
 /**
- * LocalStorage safe fallback implementation
+ * LocalStorage safe fallback implementation with in-memory recovery
  */
 export const safeLocalStorage: StateStorage = {
   getItem: (key: string): string | null => {
@@ -92,18 +94,20 @@ export const safeLocalStorage: StateStorage = {
         return window.localStorage.getItem(key);
       }
     } catch {
-      // browser storage restricted
+      // browser storage restricted or quota exceeded
     }
-    return null;
+    return inMemoryFallback.get(key) ?? null;
   },
   setItem: (key: string, value: string): void => {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.setItem(key, value);
+        return;
       }
     } catch {
       // browser storage restricted
     }
+    inMemoryFallback.set(key, value);
   },
   removeItem: (key: string): void => {
     try {
@@ -113,6 +117,7 @@ export const safeLocalStorage: StateStorage = {
     } catch {
       // browser storage restricted
     }
+    inMemoryFallback.delete(key);
   },
 };
 

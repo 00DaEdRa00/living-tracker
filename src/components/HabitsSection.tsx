@@ -45,7 +45,7 @@ export const HABIT_CATEGORIES = [
 ];
 
 // Генерация последних 28 дней для тепловой карты (4 недели)
-function getHeatmapDays(daysCount = 28): string[] {
+export function getHeatmapDays(daysCount = 28): string[] {
   const result: string[] = [];
   for (let i = daysCount - 1; i >= 0; i--) {
     const d = new Date();
@@ -55,7 +55,7 @@ function getHeatmapDays(daysCount = 28): string[] {
   return result;
 }
 
-function formatDayName(dateStr: string): string {
+export function formatDayName(dateStr: string): string {
   const d = new Date(dateStr);
   return d.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' });
 }
