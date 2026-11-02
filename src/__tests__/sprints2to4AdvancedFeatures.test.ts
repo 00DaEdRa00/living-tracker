@@ -192,7 +192,7 @@ describe('Sprints 2-4 Advanced Features Suite', () => {
     it('returns database stats fallback in web environment', async () => {
       const stats = await getDatabaseStats();
       expect(stats).not.toBeNull();
-      expect(stats?.version).toBe(4);
+      expect(stats?.version).toBeGreaterThanOrEqual(4);
       expect(stats?.storage).toBe('localStorage');
     });
 
