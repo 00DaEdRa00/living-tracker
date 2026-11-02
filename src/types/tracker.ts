@@ -4,7 +4,7 @@
 
 export type ToneMode = 'neutral' | 'ironic' | 'sassy';
 
-export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald' | 'synthwave' | 'nord' | 'dracula' | 'tokyo' | 'crimson' | 'matrix' | 'sunset' | 'aurora';
+export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald' | 'synthwave' | 'nord' | 'dracula' | 'tokyo' | 'crimson' | 'matrix' | 'sunset' | 'aurora' | 'solarpunk';
 
 export type TransactionType = 'expense' | 'income';
 
@@ -56,6 +56,7 @@ export interface Task {
   checklist?: Subtask[];
   recurrence?: TaskRecurrence;
   estimatedMinutes?: number;
+  spentMinutes?: number;
   isPinned?: boolean;
   tags?: string[];
   reminders?: string[];
@@ -151,6 +152,7 @@ export interface TrackerActions {
   setSoundVolume: (volume: number) => void;
   addFreezeShield: (count?: number) => void;
   recordFocusSession: (minutes: number, taskId?: string) => void;
+  logTaskFocusTime: (taskId: string, minutes: number) => void;
   closeAchievementModal: () => void;
   openAchievementModal: (achievementOrId: string | Achievement) => void;
   

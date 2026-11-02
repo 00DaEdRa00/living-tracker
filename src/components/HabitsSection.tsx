@@ -155,7 +155,7 @@ export const HabitsSection: React.FC = () => {
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [sharingHabit, setSharingHabit] = useState<Habit | null>(null);
   const [isMatrixShareOpen, setIsMatrixShareOpen] = useState(false);
-  const [heatmapDaysCount, setHeatmapDaysCount] = useState<28 | 56 | 84 | 112>(28);
+  const [heatmapDaysCount, setHeatmapDaysCount] = useState<28 | 56 | 84 | 112 | 140>(28);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed' | 'frozen' | 'archived'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -624,10 +624,10 @@ export const HabitsSection: React.FC = () => {
               const isFrozenToday = frozenDates.includes(today);
               const freezesRemaining = Math.max(0, 2 - freezesThisMonth);
 
-              // Расчёт стабильности за последние 28 дней
+              // Расчёт стабильности за выбранный период
               const completedInWindow = heatmapDays.filter((d) => habit.history.includes(d)).length;
               const frozenInWindow = heatmapDays.filter((d) => frozenDates.includes(d)).length;
-              const stabilityPercent = Math.round(((completedInWindow + frozenInWindow) / 28) * 100);
+              const stabilityPercent = Math.min(100, Math.round(((completedInWindow + frozenInWindow) / heatmapDaysCount) * 100));
 
               return (
                 <motion.div
@@ -834,7 +834,9 @@ export const HabitsSection: React.FC = () => {
                                 ? '8 недель'
                                 : heatmapDaysCount === 84
                                 ? '12 недель'
-                                : '16 недель (Квартал)'}
+                                : heatmapDaysCount === 112
+                                ? '16 недель (Квартал)'
+                                : '20 недель'}
                               )
                             </span>
                           </span>
@@ -849,6 +851,8 @@ export const HabitsSection: React.FC = () => {
                                   ? 84
                                   : heatmapDaysCount === 84
                                   ? 112
+                                  : heatmapDaysCount === 112
+                                  ? 140
                                   : 28
                               );
                             }}
@@ -860,6 +864,8 @@ export const HabitsSection: React.FC = () => {
                               ? '12 нед'
                               : heatmapDaysCount === 84
                               ? '16 нед'
+                              : heatmapDaysCount === 112
+                              ? '20 нед'
                               : '4 нед'}
                           </button>
                         </div>

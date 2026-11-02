@@ -62,7 +62,7 @@ fn get_database_stats() -> Result<serde_json::Value, String> {
         "status": "connected",
         "storage": "sqlite",
         "db": "living_tracker.db",
-        "version": 9
+        "version": 10
     }))
 }
 
@@ -73,8 +73,13 @@ fn get_system_metrics() -> Result<serde_json::Value, String> {
         "memory_mb": 42.5,
         "hud_active": true,
         "engine": "tauri-2.0-rust",
-        "sqlite_version": 9
+        "sqlite_version": 10
     }))
+}
+
+#[tauri::command]
+fn get_sqlite_version() -> Result<u32, String> {
+    Ok(10)
 }
 
 #[tauri::command]
@@ -224,6 +229,22 @@ pub fn run() {
             CREATE INDEX IF NOT EXISTS idx_habits_is_archived ON habits(is_archived);
         ",
         kind: MigrationKind::Up,
+    },
+    Migration {
+        version: 10,
+        description: "add_task_spent_minutes_and_monthly_recaps",
+        sql: "
+            ALTER TABLE tasks ADD COLUMN spent_minutes INTEGER DEFAULT 0;
+            CREATE TABLE IF NOT EXISTS monthly_recaps (
+                month TEXT PRIMARY KEY,
+                habits_completion_rate REAL NOT NULL DEFAULT 0.0,
+                tasks_completed INTEGER NOT NULL DEFAULT 0,
+                focus_minutes INTEGER NOT NULL DEFAULT 0,
+                recap_json TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL
+            );
+        ",
+        kind: MigrationKind::Up,
     }];
 
     tauri::Builder::default()
@@ -245,6 +266,7 @@ pub fn run() {
             get_desktop_info,
             get_database_stats,
             get_system_metrics,
+            get_sqlite_version,
             send_native_notification,
             optimize_database,
             get_system_tray_status

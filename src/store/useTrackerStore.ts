@@ -645,6 +645,24 @@ export const useTrackerStore = create<TrackerStore>()(
         recordFocusSession: (minutes: number, taskId?: string) => {
           setState((state) => ({
             focusMinutesSpent: (state.focusMinutesSpent || 0) + minutes,
+            tasks: taskId
+              ? state.tasks.map((t) =>
+                  t.id === taskId
+                    ? { ...t, spentMinutes: (t.spentMinutes || 0) + minutes }
+                    : t
+                )
+              : state.tasks,
+          }));
+        },
+
+        logTaskFocusTime: (taskId: string, minutes: number) => {
+          setState((state) => ({
+            focusMinutesSpent: (state.focusMinutesSpent || 0) + minutes,
+            tasks: state.tasks.map((t) =>
+              t.id === taskId
+                ? { ...t, spentMinutes: (t.spentMinutes || 0) + minutes }
+                : t
+            ),
           }));
         },
 

@@ -41,6 +41,7 @@ import {
   playPomodoroTickSound,
   playTimerCompleteSound,
   playBulkActionSound,
+  playFocusLogSound,
 } from '../lib/soundFx';
 import { sendDesktopNotification } from '../lib/tauriBridge';
 import { TaskShareModal } from './TaskShareModal';
@@ -256,6 +257,7 @@ export const TasksSection: React.FC = () => {
   const removeSubtask = useTrackerStore((state) => state.removeSubtask);
   const tone = useTrackerStore((state) => state.tone);
   const recordFocusSession = useTrackerStore((state) => state.recordFocusSession);
+  const logTaskFocusTime = useTrackerStore((state) => state.logTaskFocusTime);
   const bulkCompleteTasks = useTrackerStore((state) => state.bulkCompleteTasks);
   const bulkRescheduleTasks = useTrackerStore((state) => state.bulkRescheduleTasks);
   const bulkDeleteTasks = useTrackerStore((state) => state.bulkDeleteTasks);
@@ -1593,6 +1595,30 @@ export const TasksSection: React.FC = () => {
                     )}
 
                     <div className="flex items-center gap-2">
+                      {!task.completed && (task.spentMinutes !== undefined || task.estimatedMinutes !== undefined) && (
+                        <div
+                          className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-surface/90 border border-surface-border text-[10px] text-slate-300"
+                          title={`Затрачено ${task.spentMinutes || 0} мин из ${task.estimatedMinutes || 25} мин`}
+                        >
+                          <Timer className="w-3 h-3 text-amber-400 shrink-0" />
+                          <span>
+                            {task.spentMinutes || 0}/{task.estimatedMinutes || 25}м
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              logTaskFocusTime(task.id, 15);
+                              playFocusLogSound();
+                            }}
+                            title="Быстро добавить +15 минут фокуса"
+                            className="text-[9px] font-bold text-accent hover:text-white px-1 rounded bg-accent/20 hover:bg-accent/40 transition-colors cursor-pointer"
+                          >
+                            +15м
+                          </button>
+                        </div>
+                      )}
+
                       {task.dueDate && (
                         <span className="text-[10px] text-slate-400 font-medium">
                           {new Date(task.dueDate).toLocaleDateString('ru-RU', {

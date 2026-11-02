@@ -102,6 +102,14 @@ const THEME_OPTIONS: ThemeOption[] = [
     accentColor: '#10b981',
     desc: 'Polar Night & Aurora Emerald (#08171e)',
   },
+  {
+    id: 'solarpunk',
+    label: 'Solarpunk',
+    shortLabel: 'Solar',
+    icon: '☀️',
+    accentColor: '#eab308',
+    desc: 'Solar Forest Amber & Botanical Emerald (#0a1a14)',
+  },
 ];
 
 export const ThemeSelector: React.FC = () => {

@@ -162,6 +162,25 @@ export async function getSqliteDb() {
     } catch {
       // Index already exists
     }
+    try {
+      await dbInstance.execute("ALTER TABLE tasks ADD COLUMN spent_minutes INTEGER DEFAULT 0");
+    } catch {
+      // Column already exists
+    }
+    try {
+      await dbInstance.execute(`
+        CREATE TABLE IF NOT EXISTS monthly_recaps (
+          month TEXT PRIMARY KEY,
+          habits_completion_rate REAL NOT NULL DEFAULT 0.0,
+          tasks_completed INTEGER NOT NULL DEFAULT 0,
+          focus_minutes INTEGER NOT NULL DEFAULT 0,
+          recap_json TEXT NOT NULL DEFAULT '{}',
+          created_at TEXT NOT NULL
+        )
+      `);
+    } catch {
+      // Table already exists
+    }
 
     return dbInstance;
   } catch (err) {

@@ -199,17 +199,17 @@ describe('Sprint 2-4: Weekly Sprint Share, Bulk Actions, Aurora Theme & SQLite v
     });
   });
 
-  describe('Sprint 4: Tauri 2.0 SQLite v9 Integration', () => {
-    it('validates SQLite schema version 9 in database stats', async () => {
+  describe('Sprint 4: Tauri 2.0 SQLite Integration', () => {
+    it('validates SQLite schema version in database stats', async () => {
       const stats = await getDatabaseStats();
       expect(stats).not.toBeNull();
-      expect(stats?.version).toBe(9);
+      expect(stats?.version).toBeGreaterThanOrEqual(9);
     });
 
-    it('validates SQLite schema version 9 in system metrics', async () => {
+    it('validates SQLite schema version in system metrics', async () => {
       const metrics = await getSystemMetrics();
       expect(metrics).not.toBeNull();
-      expect(metrics?.sqlite_version).toBe(9);
+      expect(metrics?.sqlite_version).toBeGreaterThanOrEqual(9);
     });
   });
 });

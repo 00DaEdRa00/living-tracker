@@ -1171,6 +1171,118 @@ export function playBulkActionSound(): void {
 }
 
 /**
+ * 34. playSolarSound() — теплый янтарный гармонический аккорд для темы Solarpunk и месячных итогов
+ */
+export function playSolarSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const vol = getMasterVolume();
+    const now = ctx.currentTime;
+    // Solarpunk Major pentatonic arpeggio (C5 - E5 - G5 - B5 - D6)
+    const notes = [523.25, 659.25, 783.99, 987.77, 1174.66];
+
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = now + i * 0.055;
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, startTime);
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.015, startTime + 0.35);
+
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.linearRampToValueAtTime(0.18 * vol, startTime + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.42);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.45);
+    });
+  } catch (err) {
+    console.warn('Audio playSolarSound error:', err);
+  }
+}
+
+/**
+ * 35. playFocusLogSound() — тактильный механический щелчок при логировании минут фокуса
+ */
+export function playFocusLogSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const vol = getMasterVolume();
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(1400, now);
+    osc.frequency.exponentialRampToValueAtTime(320, now + 0.07);
+
+    gain.gain.setValueAtTime(0.22 * vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.08);
+  } catch (err) {
+    console.warn('Audio playFocusLogSound error:', err);
+  }
+}
+
+/**
+ * 36. playMilestoneCheerSound() — торжественный каскад колоколов при достижении крупного рубежа
+ */
+export function playMilestoneCheerSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const vol = getMasterVolume();
+    const now = ctx.currentTime;
+    const chords = [
+      { f: 587.33, t: 0 },
+      { f: 739.99, t: 0.08 },
+      { f: 880.0, t: 0.16 },
+      { f: 1174.66, t: 0.24 },
+      { f: 1479.98, t: 0.32 },
+    ];
+
+    chords.forEach(({ f, t }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = now + t;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, startTime);
+
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.linearRampToValueAtTime(0.24 * vol, startTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.55);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.58);
+    });
+  } catch (err) {
+    console.warn('Audio playMilestoneCheerSound error:', err);
+  }
+}
+
+/**
  * Каталог доступных процедурных Web Audio FX для звукового теста и превью
  */
 export interface SoundPreset {
@@ -1187,14 +1299,17 @@ export const SOUND_FX_CATALOG: SoundPreset[] = [
   { id: 'water', name: 'Капля воды', description: 'Здоровье и водный баланс', icon: '💧', play: playWaterDropSound },
   { id: 'flame', name: 'Огонь стрика', description: 'Разжигание серии активности', icon: '🔥', play: playFlameSound },
   { id: 'task', name: 'Выполнение задачи', description: 'Чекбокс закрытия дела', icon: '🎯', play: playTaskCompleteSound },
+  { id: 'focus_log', name: 'Лог фокуса', description: 'Добавление минут Помодоро', icon: '⏱️', play: playFocusLogSound },
   { id: 'bulk', name: 'Массовые действия', description: 'Групповая операция над задачами', icon: '⚡', play: playBulkActionSound },
   { id: 'recurrence', name: 'Цикл повтора', description: 'Перенос повторяющейся задачи', icon: '🔁', play: playRecurrenceSound },
   { id: 'freeze', name: 'Заморозка стрика', description: 'Streak Freeze от выгорания', icon: '❄️', play: playStreakFreezeSound },
   { id: 'shield', name: 'Активация щита', description: 'Защита всех стриков на день', icon: '🛡️', play: playShieldSound },
   { id: 'shield_earned', name: 'Получение щита', description: 'Награда за стрик 7+ дней', icon: '💎', play: playFreezeShieldEarnedSound },
   { id: 'milestone', name: 'Стрик-рекорд', description: 'Рубеж 7, 14, 21, 30 дней', icon: '⚡', play: playStreakMilestoneSound },
+  { id: 'milestone_cheer', name: 'Триумф рубежа', description: 'Праздничный каскадный перезвон', icon: '🌟', play: playMilestoneCheerSound },
   { id: 'badge', name: 'Значок рубежа', description: 'Награда за юбилейный стрик', icon: '🎖️', play: playBadgeUnlockSound },
   { id: 'aurora', name: 'Северное сияние', description: 'Полярное мерцание и гармония', icon: '✨', play: playAuroraSound },
+  { id: 'solarpunk', name: 'Солнечный свет', description: 'Янтарный гармонический аккорд', icon: '☀️', play: playSolarSound },
   { id: 'fanfare', name: 'Ачивка', description: 'Разблокировка трофея', icon: '🎺', play: playAchievementFanfare },
   { id: 'level_up', name: 'Повышение уровня', description: 'Новый ранг и победа', icon: '🏆', play: playLevelUpSound },
   { id: 'timer', name: 'Таймер Помодоро', description: 'Завершение фокус-раунда', icon: '⏱️', play: playTimerCompleteSound },

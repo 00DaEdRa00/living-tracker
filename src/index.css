@@ -113,6 +113,16 @@
   --color-accent-glow: 6 182 212;    /* #06b6d4 Polar Cyan */
 }
 
+[data-theme='solarpunk'],
+.theme-solarpunk {
+  --color-bg-app: 10 26 20;          /* #0a1a14 Solar Forest Dark */
+  --color-bg-surface: 16 38 30;      /* #10261e */
+  --color-bg-card: 22 53 42;         /* #16352a */
+  --color-border-surface: 46 117 89;  /* #2e7559 Verdant Canopy */
+  --color-accent: 234 179 8;         /* #eab308 Solarpunk Sun Gold */
+  --color-accent-glow: 52 211 153;   /* #34d399 Solar Flora Glow */
+}
+
 @layer base {
   html,
   body {
