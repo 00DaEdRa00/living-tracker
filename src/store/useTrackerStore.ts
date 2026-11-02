@@ -24,38 +24,70 @@ const initialBudget: Budget = {
   currency: '₽',
 };
 
+const getPastDateStr = (daysAgo: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return d.toISOString().split('T')[0];
+};
+
 const initialHabits: Habit[] = [
   {
     id: 'habit-1',
     title: 'Выпить 2л чистой воды',
-    description: 'Очистить организм и держать баланс',
-    category: 'Здоровье',
-    streak: 2,
-    bestStreak: 2,
+    description: 'Очистить организм и держать водный баланс',
+    category: 'Здоровье/Спорт',
+    icon: '💧',
+    streak: 4,
+    bestStreak: 12,
     completedToday: false,
-    history: [],
+    history: [getPastDateStr(4), getPastDateStr(3), getPastDateStr(2), getPastDateStr(1)],
+    frozenDates: [],
     createdAt: new Date().toISOString(),
   },
   {
     id: 'habit-2',
-    title: '15 минут зарядки',
-    description: 'Разминка и растяжка для спины',
-    category: 'Спорт',
-    streak: 0,
-    bestStreak: 0,
+    title: '15 минут зарядки и растяжки',
+    description: 'Разминка шеи и спины после рабочего дня',
+    category: 'Здоровье/Спорт',
+    icon: '🏋️',
+    streak: 1,
+    bestStreak: 5,
     completedToday: false,
-    history: [],
+    history: [getPastDateStr(1)],
+    frozenDates: [],
     createdAt: new Date().toISOString(),
   },
   {
     id: 'habit-3',
     title: 'Чтение книги 30 мин',
-    description: 'Развитие концентрации без ленты новостей',
-    category: 'Развитие',
+    description: 'Развитие концентрации без залипания в соцсетях',
+    category: 'Хобби',
+    icon: '📚',
     streak: 6,
-    bestStreak: 6,
+    bestStreak: 14,
     completedToday: false,
-    history: [],
+    history: [
+      getPastDateStr(6),
+      getPastDateStr(5),
+      getPastDateStr(4),
+      getPastDateStr(3),
+      getPastDateStr(2),
+      getPastDateStr(1),
+    ],
+    frozenDates: [],
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'habit-4',
+    title: 'Кодинг пет-проекта',
+    description: 'Минимум 1 коммит каждый рабочий день',
+    category: 'Работа',
+    icon: '💻',
+    streak: 3,
+    bestStreak: 9,
+    completedToday: false,
+    history: [getPastDateStr(3), getPastDateStr(2), getPastDateStr(1)],
+    frozenDates: [],
     createdAt: new Date().toISOString(),
   },
 ];
@@ -64,20 +96,57 @@ const initialTasks: Task[] = [
   {
     id: 'task-1',
     title: 'Разобрать завал в почте и мессенджерах',
-    description: 'Ответить на зависшие диалоги',
+    description: 'Ответить на зависшие диалоги с клиентами',
     completed: false,
-    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(), // 4 дня назад для ачивки
+    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    dueDate: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(), // Просрочено (красный)
     priority: 'high',
-    category: 'Дела',
+    category: 'Работа',
+    icon: '💻',
   },
   {
     id: 'task-2',
-    title: 'Оплатить счета и подписки',
-    description: 'Проверить актуальные тарифы',
+    title: 'Оплатить счета ЖКХ и подписки',
+    description: 'Передать показания счетчиков воды и света',
     completed: false,
     createdAt: new Date().toISOString(),
+    dueDate: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(), // Горит сегодня (желтый)
+    priority: 'high',
+    category: 'Быт',
+    icon: '💡',
+  },
+  {
+    id: 'task-3',
+    title: 'Силовая тренировка: спина и плечи',
+    description: 'Гантели, подтягивания и растяжка',
+    completed: false,
+    createdAt: new Date().toISOString(),
+    dueDate: new Date(Date.now() + 26 * 60 * 60 * 1000).toISOString(), // Завтра
+    priority: 'medium',
+    category: 'Здоровье/Спорт',
+    icon: '🏋️',
+  },
+  {
+    id: 'task-4',
+    title: 'Сформировать подушку безопасности',
+    description: 'Перевести 10% дохода на накопительный счёт',
+    completed: false,
+    createdAt: new Date().toISOString(),
+    dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // Через 3 дня (зеленый)
     priority: 'medium',
     category: 'Финансы',
+    icon: '💰',
+  },
+  {
+    id: 'task-5',
+    title: 'Изучить 2 главы по системному дизайну',
+    description: 'Разобрать шардирование БД и консистентное хеширование',
+    completed: false,
+    createdAt: new Date().toISOString(),
+    dueDate: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(), // В запасе
+    priority: 'low',
+    category: 'Хобби',
+    icon: '📚',
   },
 ];
 
@@ -296,6 +365,41 @@ export const useTrackerStore = create<TrackerStore>()(
           }
         },
 
+        freezeHabit: (id) => {
+          const state = getState();
+          const habit = state.habits.find((h) => h.id === id);
+          if (!habit) return false;
+
+          const today = new Date().toISOString().split('T')[0];
+          const currentMonth = today.slice(0, 7); // 'YYYY-MM'
+          const frozenDates = habit.frozenDates || [];
+
+          if (frozenDates.includes(today)) {
+            // Already frozen today: toggle unfreeze
+            const updated = frozenDates.filter((d) => d !== today);
+            setState({
+              habits: state.habits.map((h) =>
+                h.id === id ? { ...h, frozenDates: updated } : h
+              ),
+            });
+            return true;
+          }
+
+          // Check monthly limit (max 2 freezes in calendar month)
+          const freezesThisMonth = frozenDates.filter((d) => d.startsWith(currentMonth)).length;
+          if (freezesThisMonth >= 2) {
+            return false;
+          }
+
+          const updated = [...frozenDates, today];
+          setState({
+            habits: state.habits.map((h) =>
+              h.id === id ? { ...h, frozenDates: updated } : h
+            ),
+          });
+          return true;
+        },
+
         toggleTask: (id) => {
           const state = getState();
           const task = state.tasks.find((t) => t.id === id);
@@ -388,6 +492,8 @@ export const useTrackerStore = create<TrackerStore>()(
             bestStreak: 0,
             completedToday: false,
             history: [],
+            frozenDates: habit.frozenDates || [],
+            icon: habit.icon || '⚡',
             createdAt: habit.createdAt || new Date().toISOString(),
           };
           setState((state) => ({ habits: [...state.habits, newHabit] }));
@@ -403,6 +509,7 @@ export const useTrackerStore = create<TrackerStore>()(
             ...task,
             id,
             completed: false,
+            icon: task.icon || '🎯',
             createdAt: task.createdAt || new Date().toISOString(),
           };
           setState((state) => ({ tasks: [...state.tasks, newTask] }));

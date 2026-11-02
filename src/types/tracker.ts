@@ -20,10 +20,12 @@ export interface Habit {
   title: string;
   description?: string;
   category?: string;
+  icon?: string;
   streak: number;
   bestStreak?: number;
   completedToday: boolean;
   history: string[]; // ISO date strings ('YYYY-MM-DD')
+  frozenDates?: string[]; // ISO date strings ('YYYY-MM-DD')
   createdAt: string; // ISO date string
 }
 
@@ -37,6 +39,7 @@ export interface Task {
   dueDate?: string;
   priority?: 'low' | 'medium' | 'high';
   category?: string;
+  icon?: string;
 }
 
 export interface Budget {
@@ -109,6 +112,7 @@ export interface TrackerState {
 export interface TrackerActions {
   addTransaction: (transaction: Omit<Transaction, 'id' | 'date'> & { id?: string; date?: string }) => void;
   toggleHabit: (id: string) => void;
+  freezeHabit: (id: string) => boolean;
   toggleTask: (id: string) => void;
   clickCat: () => void;
   clickPrice: () => void;

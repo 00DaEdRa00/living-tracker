@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
   Zap,
@@ -14,16 +14,26 @@ import {
   Trash2,
   Clock,
   ShieldCheck,
+  LayoutGrid,
+  CheckSquare,
+  CreditCard,
+  ChevronRight,
+  Calendar,
 } from 'lucide-react';
 
-import { useTrackerStore, ACHIEVEMENTS } from './store/useTrackerStore';
+import { useTrackerStore, ACHIEVEMENTS, eventBus } from './store/useTrackerStore';
 import ToneToggle from './components/ToneToggle';
 import BudgetRing from './components/BudgetRing';
 import CatClicker from './components/CatClicker';
 import AchievementModal from './components/AchievementModal';
 import QuickAddModal from './components/QuickAddModal';
+import TasksSection from './components/TasksSection';
+import HabitsSection from './components/HabitsSection';
+
+export type DashboardTab = 'all' | 'tasks' | 'habits' | 'finances';
 
 export const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<DashboardTab>('all');
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
 
   // Стор
@@ -38,7 +48,7 @@ export const App: React.FC = () => {
   const toggleTask = useTrackerStore((state) => state.toggleTask);
   const deleteTransaction = useTrackerStore((state) => state.deleteTransaction);
 
-  // Расчёт XP и уровня
+  // Подсчёт XP и уровня
   const unlockedCount = Object.keys(unlockedAchievements).length;
   const habitsScore = habits.reduce((acc, h) => acc + h.streak * 20 + (h.completedToday ? 30 : 0), 0);
   const tasksScore = tasks.filter((t) => t.completed).length * 50;
@@ -55,6 +65,15 @@ export const App: React.FC = () => {
   const alcoholSpent = alcoholTransactions.reduce((acc, tx) => acc + tx.amount, 0);
   const alcoholBudgetShare =
     budget.spent > 0 ? Math.round((alcoholSpent / budget.spent) * 100) : 0;
+
+  // Счетчики для вкладок
+  const activeTasksCount = tasks.filter((t) => !t.completed).length;
+  const habitsRemainingCount = habits.filter((h) => !h.completedToday).length;
+
+  const handleTabChange = (newTab: DashboardTab) => {
+    setActiveTab(newTab);
+    eventBus.emit({ type: 'PAGE_VIEWED', payload: { page: newTab } });
+  };
 
   // Тексты в зависимости от тона
   const getToneHeadline = () => {
@@ -80,7 +99,7 @@ export const App: React.FC = () => {
                   Живой трекер
                 </span>
                 <span className="hidden sm:inline-block text-[10px] font-bold px-2 py-0.5 bg-accent/15 border border-accent/40 text-accent rounded-full uppercase tracking-wider">
-                  v0.1
+                  Sprint 2
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-slate-400 truncate max-w-[200px] sm:max-w-md">
@@ -115,300 +134,446 @@ export const App: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Навигационная панель командного центра (Табы) */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none border-t border-surface-border/50">
+          <nav className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleTabChange('all')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'all'
+                  ? 'bg-accent/20 text-accent border border-accent/40 shadow-sm'
+                  : 'text-slate-400 hover:text-white hover:bg-surface-card/60'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Дашборд (Все блоки)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabChange('tasks')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'tasks'
+                  ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-white hover:bg-surface-card/60'
+              }`}
+            >
+              <CheckSquare className="w-3.5 h-3.5" />
+              <span>Задачи</span>
+              {activeTasksCount > 0 && (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-sky-500/30 text-sky-200 font-extrabold">
+                  {activeTasksCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabChange('habits')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'habits'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-white hover:bg-surface-card/60'
+              }`}
+            >
+              <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+              <span>Привычки & Стрики</span>
+              {habitsRemainingCount > 0 && (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/30 text-amber-200 font-extrabold">
+                  {habitsRemainingCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabChange('finances')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'finances'
+                  ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-white hover:bg-surface-card/60'
+              }`}
+            >
+              <CreditCard className="w-3.5 h-3.5" />
+              <span>Финансы</span>
+            </button>
+          </nav>
+
+          <div className="hidden md:flex items-center gap-3 text-xs text-slate-400">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Система в норме</span>
+            </span>
+          </div>
+        </div>
       </header>
 
-      {/* Основной контент */}
+      {/* Основной контент дашборда */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Верхняя секция: Центральный круг бюджета и ключевые виджеты */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Центральный круг бюджета */}
-          <section className="lg:col-span-5 flex flex-col items-center justify-center p-6 rounded-3xl bg-surface-card/70 border border-surface-border shadow-xl backdrop-blur-sm relative overflow-hidden">
-            <div className="w-full flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-accent animate-ping" />
-                <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider">
-                  Бюджет месяца
-                </h2>
+        {/* Режим: Все блоки (Главный командный центр) */}
+        {activeTab === 'all' && (
+          <div className="space-y-8">
+            {/* Верхняя панель: Кольцо бюджета + Радар + Ачивки + Быстрый фокус */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Центральный круг бюджета */}
+              <section className="lg:col-span-5 flex flex-col items-center justify-center p-6 rounded-3xl bg-surface-card/70 border border-surface-border shadow-xl backdrop-blur-sm relative overflow-hidden">
+                <div className="w-full flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-accent animate-ping" />
+                    <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider">
+                      Бюджет месяца
+                    </h2>
+                  </div>
+                  <span className="text-xs font-semibold text-slate-400">
+                    Лимит: {budget.monthlyLimit.toLocaleString('ru-RU')} ₽
+                  </span>
+                </div>
+
+                <BudgetRing onOpenAddExpense={() => setIsAddExpenseOpen(true)} />
+              </section>
+
+              {/* Статы, радар и карточки быстрого перехода */}
+              <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Виджет: Алкогольный радар */}
+                <div className="p-5 rounded-3xl bg-gradient-to-br from-rose-950/30 via-surface-card to-surface-card border border-rose-500/30 shadow-lg relative overflow-hidden">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                      <Wine className="w-5 h-5 text-rose-400" />
+                      <span>Алкогольный радар</span>
+                    </div>
+                    <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                      {alcoholBudgetShare}% бюджета
+                    </span>
+                  </div>
+
+                  <div className="mt-2">
+                    <div className="text-2xl sm:text-3xl font-extrabold text-white">
+                      {alcoholSpent.toLocaleString('ru-RU')}{' '}
+                      <span className="text-lg text-slate-400 font-normal">₽</span>
+                    </div>
+                    <p className="text-xs text-slate-300 mt-2">
+                      {alcoholSpent === 0
+                        ? 'Трезвость — норма жизни! Ни копейки на алко.'
+                        : tone === 'sassy'
+                        ? 'Печень шлёт тебе лучи «добра», а кошелёк просит пощады!'
+                        : tone === 'ironic'
+                        ? 'Инвестиции в душевное равновесие и головную боль.'
+                        : 'Суммарные траты по категории алкоголя.'}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
+                    <span>Чеков на алко:</span>
+                    <span className="font-bold text-white">{alcoholTransactions.length}</span>
+                  </div>
+                </div>
+
+                {/* Виджет: Достижения */}
+                <div className="p-5 rounded-3xl bg-gradient-to-br from-purple-950/30 via-surface-card to-surface-card border border-purple-500/30 shadow-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2 text-purple-400 font-bold text-sm">
+                      <Trophy className="w-5 h-5 text-amber-400" />
+                      <span>Достижения</span>
+                    </div>
+                    <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      {unlockedCount} / {ACHIEVEMENTS.length}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 my-3">
+                    <div className="flex -space-x-2 overflow-hidden py-1">
+                      {ACHIEVEMENTS.slice(0, 5).map((ach) => {
+                        const isUnlocked = Boolean(unlockedAchievements[ach.id]);
+                        return (
+                          <div
+                            key={ach.id}
+                            title={ach.title}
+                            className={`w-9 h-9 rounded-2xl flex items-center justify-center border-2 border-surface text-lg transition-transform hover:scale-110 ${
+                              isUnlocked
+                                ? 'bg-purple-900/60 shadow-md shadow-purple-500/20'
+                                : 'bg-slate-800/80 grayscale opacity-40'
+                            }`}
+                          >
+                            {ach.icon}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <span className="text-xs text-slate-400 font-medium">
+                      {unlockedCount === ACHIEVEMENTS.length ? 'Все открыты!' : 'Охота продолжается'}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-300 mt-2">
+                    {tone === 'sassy'
+                      ? 'Выполняй привычки и кликай секретки, чтобы закрыть коллекцию!'
+                      : 'Открывайте новые достижения за активность и дисциплину.'}
+                  </p>
+                </div>
+
+                {/* Виджет: Быстрый доступ к задачам */}
+                <div
+                  onClick={() => handleTabChange('tasks')}
+                  className="p-4 rounded-3xl bg-surface-card border border-surface-border hover:border-sky-500/50 shadow-lg cursor-pointer transition-all group"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 text-sky-400 font-bold text-sm">
+                      <ShieldCheck className="w-4 h-4 text-accent" />
+                      <span>Задачи в фокусе</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-accent transition-transform group-hover:translate-x-1" />
+                  </div>
+                  <div className="text-xl font-extrabold text-white">
+                    {activeTasksCount}{' '}
+                    <span className="text-xs font-normal text-slate-400">
+                      активных из {tasks.length}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-accent font-semibold mt-2 inline-flex items-center gap-1">
+                    Перейти к управлению задачами →
+                  </span>
+                </div>
+
+                {/* Виджет: Быстрый доступ к привычкам */}
+                <div
+                  onClick={() => handleTabChange('habits')}
+                  className="p-4 rounded-3xl bg-surface-card border border-surface-border hover:border-amber-500/50 shadow-lg cursor-pointer transition-all group"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+                      <Flame className="w-4 h-4 text-amber-400" />
+                      <span>Привычки сегодня</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition-transform group-hover:translate-x-1" />
+                  </div>
+                  <div className="text-xl font-extrabold text-white">
+                    {habits.filter((h) => h.completedToday).length}{' '}
+                    <span className="text-xs font-normal text-slate-400">
+                      из {habits.length} выполнено
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-amber-400 font-semibold mt-2 inline-flex items-center gap-1">
+                    Открыть стрик-трекер и карту →
+                  </span>
+                </div>
               </div>
-              <span className="text-xs font-semibold text-slate-400">
-                Лимит: {budget.monthlyLimit.toLocaleString('ru-RU')} ₽
-              </span>
             </div>
 
-            {/* SVG Кольцо */}
-            <BudgetRing onOpenAddExpense={() => setIsAddExpenseOpen(true)} />
-          </section>
-
-          {/* Быстрые статы и радар алкоголя */}
-          <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Виджет: Алкогольный радар */}
-            <div className="p-5 rounded-3xl bg-gradient-to-br from-rose-950/30 via-surface-card to-surface-card border border-rose-500/30 shadow-lg relative overflow-hidden">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
-                  <Wine className="w-5 h-5 text-rose-400" />
-                  <span>Алкогольный радар</span>
-                </div>
-                <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40">
-                  {alcoholBudgetShare}% бюджета
-                </span>
-              </div>
-
-              <div className="mt-2">
-                <div className="text-2xl sm:text-3xl font-extrabold text-white">
-                  {alcoholSpent.toLocaleString('ru-RU')}{' '}
-                  <span className="text-lg text-slate-400 font-normal">₽</span>
-                </div>
-                <p className="text-xs text-slate-300 mt-2">
-                  {alcoholSpent === 0
-                    ? 'Трезвость — норма жизни! Ни копейки на алко.'
-                    : tone === 'sassy'
-                    ? 'Печень шлёт тебе лучи «добра», а кошелёк просит пощады!'
-                    : tone === 'ironic'
-                    ? 'Инвестиции в душевное равновесие и головную боль.'
-                    : 'Суммарные траты по категории алкоголя.'}
-                </p>
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
-                <span>Чеков на алко:</span>
-                <span className="font-bold text-white">{alcoholTransactions.length}</span>
-              </div>
+            {/* Блок 1: Полноценная секция задач */}
+            <div className="pt-2">
+              <TasksSection />
             </div>
 
-            {/* Виджет: Ачивки и прогресс */}
-            <div className="p-5 rounded-3xl bg-gradient-to-br from-purple-950/30 via-surface-card to-surface-card border border-purple-500/30 shadow-lg">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2 text-purple-400 font-bold text-sm">
-                  <Trophy className="w-5 h-5 text-amber-400" />
-                  <span>Достижения</span>
+            {/* Блок 2: Полноценная секция привычек */}
+            <div className="pt-2">
+              <HabitsSection />
+            </div>
+
+            {/* Блок 3: Список финансовых операций */}
+            <section className="p-6 rounded-3xl bg-surface-card border border-surface-border shadow-xl">
+              <div className="flex items-center justify-between pb-4 border-b border-surface-border">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-white">Последние операции</h3>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-surface text-slate-400 border border-surface-border">
+                    {transactions.length}
+                  </span>
                 </div>
-                <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  {unlockedCount} / {ACHIEVEMENTS.length}
-                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setIsAddExpenseOpen(true)}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-accent hover:text-white px-3 py-1.5 rounded-xl bg-accent/10 hover:bg-accent/20 border border-accent/30 transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Добавить операцию</span>
+                </button>
               </div>
 
-              <div className="flex items-center gap-3 my-3">
-                <div className="flex -space-x-2 overflow-hidden py-1">
-                  {ACHIEVEMENTS.slice(0, 5).map((ach) => {
-                    const isUnlocked = Boolean(unlockedAchievements[ach.id]);
+              {transactions.length === 0 ? (
+                <div className="py-12 text-center text-slate-500">
+                  <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm font-medium">Транзакций пока нет</p>
+                  <p className="text-xs text-slate-600 mt-1">
+                    Нажмите «Добавить операцию», чтобы зафиксировать первый расход или доход
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-surface-border mt-2">
+                  {transactions.slice(0, 8).map((tx) => {
+                    const isExpense = tx.type !== 'income';
                     return (
                       <div
-                        key={ach.id}
-                        title={ach.title}
-                        className={`w-9 h-9 rounded-2xl flex items-center justify-center border-2 border-surface text-lg transition-transform hover:scale-110 ${
-                          isUnlocked
-                            ? 'bg-purple-900/60 shadow-md shadow-purple-500/20'
-                            : 'bg-slate-800/80 grayscale opacity-40'
-                        }`}
+                        key={tx.id}
+                        className="py-3.5 flex items-center justify-between gap-4 hover:bg-white/[0.02] px-2 rounded-xl transition-colors"
                       >
-                        {ach.icon}
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                              isExpense
+                                ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                                : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            }`}
+                          >
+                            {isExpense ? (
+                              <ArrowDownLeft className="w-4 h-4" />
+                            ) : (
+                              <ArrowUpRight className="w-4 h-4" />
+                            )}
+                          </div>
+                          <div className="truncate">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-white truncate">
+                                {tx.category}
+                              </span>
+                              {tx.category === 'Алкоголь' && (
+                                <span className="text-xs">🍷</span>
+                              )}
+                            </div>
+                            {tx.description && (
+                              <p className="text-xs text-slate-400 truncate">
+                                {tx.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 shrink-0">
+                          <div
+                            className={`text-sm sm:text-base font-extrabold ${
+                              isExpense ? 'text-rose-400' : 'text-emerald-400'
+                            }`}
+                          >
+                            {isExpense ? '-' : '+'}
+                            {tx.amount.toLocaleString('ru-RU')} ₽
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => deleteTransaction(tx.id)}
+                            title="Удалить запись"
+                            className="p-1.5 text-slate-600 hover:text-red-400 rounded-lg hover:bg-surface transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
                 </div>
-                <span className="text-xs text-slate-400 font-medium">
-                  {unlockedCount === ACHIEVEMENTS.length ? 'Все открыты!' : 'Охота продолжается'}
-                </span>
-              </div>
-
-              <p className="text-xs text-slate-300 mt-2">
-                {tone === 'sassy'
-                  ? 'Выполняй привычки и кликай секретки, чтобы закрыть коллекцию!'
-                  : 'Открывайте новые достижения за активность и дисциплину.'}
-              </p>
-            </div>
-
-            {/* Виджет: Дисциплина и привычки */}
-            <div className="p-5 rounded-3xl bg-surface-card border border-surface-border shadow-lg">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
-                  <Flame className="w-5 h-5 text-amber-400" />
-                  <span>Привычки сегодня</span>
-                </div>
-                <span className="text-xs text-slate-400 font-semibold">
-                  {habits.filter((h) => h.completedToday).length} / {habits.length}
-                </span>
-              </div>
-
-              <div className="space-y-2 mt-3">
-                {habits.map((habit) => (
-                  <div
-                    key={habit.id}
-                    onClick={() => toggleHabit(habit.id)}
-                    className="flex items-center justify-between p-2.5 rounded-2xl bg-surface/70 hover:bg-surface border border-surface-border cursor-pointer transition-all group"
-                  >
-                    <div className="flex items-center gap-2.5 truncate">
-                      {habit.completedToday ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      ) : (
-                        <Circle className="w-4 h-4 text-slate-500 group-hover:text-accent shrink-0" />
-                      )}
-                      <span
-                        className={`text-xs font-medium truncate ${
-                          habit.completedToday
-                            ? 'line-through text-slate-500'
-                            : 'text-slate-200'
-                        }`}
-                      >
-                        {habit.title}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1 shrink-0 text-amber-400 text-xs font-bold pl-2">
-                      <Flame className="w-3.5 h-3.5 fill-amber-400" />
-                      <span>{habit.streak}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Виджет: Горящие задачи */}
-            <div className="p-5 rounded-3xl bg-surface-card border border-surface-border shadow-lg">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2 text-sky-400 font-bold text-sm">
-                  <ShieldCheck className="w-5 h-5 text-accent" />
-                  <span>Задачи в фокусе</span>
-                </div>
-                <span className="text-xs text-slate-400 font-semibold">
-                  {tasks.filter((t) => t.completed).length} / {tasks.length}
-                </span>
-              </div>
-
-              <div className="space-y-2 mt-3">
-                {tasks.map((task) => (
-                  <div
-                    key={task.id}
-                    onClick={() => toggleTask(task.id)}
-                    className="flex items-center justify-between p-2.5 rounded-2xl bg-surface/70 hover:bg-surface border border-surface-border cursor-pointer transition-all group"
-                  >
-                    <div className="flex items-center gap-2.5 truncate">
-                      {task.completed ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      ) : (
-                        <Circle className="w-4 h-4 text-slate-500 group-hover:text-accent shrink-0" />
-                      )}
-                      <span
-                        className={`text-xs font-medium truncate ${
-                          task.completed
-                            ? 'line-through text-slate-500'
-                            : 'text-slate-200'
-                        }`}
-                      >
-                        {task.title}
-                      </span>
-                    </div>
-
-                    {task.priority && (
-                      <span
-                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
-                          task.priority === 'high'
-                            ? 'bg-red-950/60 text-red-400 border border-red-500/30'
-                            : 'bg-slate-800 text-slate-400'
-                        }`}
-                      >
-                        {task.priority}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+              )}
+            </section>
           </div>
-        </div>
+        )}
 
-        {/* Нижняя секция: Список транзакций */}
-        <section className="p-6 rounded-3xl bg-surface-card border border-surface-border shadow-xl">
-          <div className="flex items-center justify-between pb-4 border-b border-surface-border">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-bold text-white">Последние операции</h3>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-surface text-slate-400 border border-surface-border">
-                {transactions.length}
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsAddExpenseOpen(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-accent hover:text-white px-3 py-1.5 rounded-xl bg-accent/10 hover:bg-accent/20 border border-accent/30 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Добавить</span>
-            </button>
+        {/* Режим: Выделенный экран задач */}
+        {activeTab === 'tasks' && (
+          <div className="space-y-6">
+            <TasksSection />
           </div>
+        )}
 
-          {transactions.length === 0 ? (
-            <div className="py-12 text-center text-slate-500">
-              <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm font-medium">Транзакций пока нет</p>
-              <p className="text-xs text-slate-600 mt-1">
-                Нажмите «Добавить расход», чтобы начать учёт
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-surface-border mt-2">
-              {transactions.slice(0, 8).map((tx) => {
-                const isExpense = tx.type !== 'income';
-                return (
-                  <div
-                    key={tx.id}
-                    className="py-3.5 flex items-center justify-between gap-4 hover:bg-white/[0.02] px-2 rounded-xl transition-colors"
+        {/* Режим: Выделенный экран привычек */}
+        {activeTab === 'habits' && (
+          <div className="space-y-6">
+            <HabitsSection />
+          </div>
+        )}
+
+        {/* Режим: Выделенный экран финансов */}
+        {activeTab === 'finances' && (
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              <section className="lg:col-span-6 flex flex-col items-center justify-center p-6 rounded-3xl bg-surface-card/70 border border-surface-border shadow-xl backdrop-blur-sm">
+                <div className="w-full flex items-center justify-between mb-2">
+                  <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider">
+                    Круг бюджета
+                  </h2>
+                  <span className="text-xs font-semibold text-slate-400">
+                    Лимит: {budget.monthlyLimit.toLocaleString('ru-RU')} ₽
+                  </span>
+                </div>
+                <BudgetRing onOpenAddExpense={() => setIsAddExpenseOpen(true)} />
+              </section>
+
+              <div className="lg:col-span-6 p-6 rounded-3xl bg-surface-card border border-surface-border shadow-xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-rose-400 font-bold">
+                    <Wine className="w-5 h-5" />
+                    <span>Алкогольный радар трат</span>
+                  </div>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                    {alcoholBudgetShare}% бюджета
+                  </span>
+                </div>
+                <div className="text-3xl font-extrabold text-white">
+                  {alcoholSpent.toLocaleString('ru-RU')} ₽
+                </div>
+                <p className="text-xs text-slate-300">
+                  {alcoholSpent === 0
+                    ? 'Трезвость и чистый ум! Расходов на алкоголь в этом месяце нет.'
+                    : 'Контролируйте чеки на алкоголь и бары, чтобы они не пожирали финансовую подушку.'}
+                </p>
+                <div className="pt-4 border-t border-surface-border flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddExpenseOpen(true)}
+                    className="w-full py-2.5 rounded-xl bg-accent text-slate-950 font-bold text-xs hover:bg-accent/90 transition-colors cursor-pointer"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                          isExpense
-                            ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                            : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                        }`}
-                      >
-                        {isExpense ? (
-                          <ArrowDownLeft className="w-4 h-4" />
-                        ) : (
-                          <ArrowUpRight className="w-4 h-4" />
-                        )}
-                      </div>
-                      <div className="truncate">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-white truncate">
-                            {tx.category}
-                          </span>
-                          {tx.category === 'Алкоголь' && (
-                            <span className="text-xs">🍷</span>
-                          )}
+                    + Записать чек / расход
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Полный список операций */}
+            <section className="p-6 rounded-3xl bg-surface-card border border-surface-border shadow-xl">
+              <div className="flex items-center justify-between pb-4 border-b border-surface-border">
+                <h3 className="text-lg font-bold text-white">История транзакций</h3>
+                <span className="text-xs text-slate-400">Всего: {transactions.length}</span>
+              </div>
+              <div className="divide-y divide-surface-border mt-2">
+                {transactions.map((tx) => {
+                  const isExpense = tx.type !== 'income';
+                  return (
+                    <div
+                      key={tx.id}
+                      className="py-3.5 flex items-center justify-between gap-4 px-2"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                            isExpense
+                              ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                              : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          }`}
+                        >
+                          {isExpense ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
                         </div>
-                        {tx.description && (
-                          <p className="text-xs text-slate-400 truncate">
-                            {tx.description}
-                          </p>
-                        )}
+                        <div>
+                          <div className="text-sm font-bold text-white">{tx.category}</div>
+                          {tx.description && <div className="text-xs text-slate-400">{tx.description}</div>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`font-bold ${isExpense ? 'text-rose-400' : 'text-emerald-400'}`}>
+                          {isExpense ? '-' : '+'}{tx.amount.toLocaleString('ru-RU')} ₽
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => deleteTransaction(tx.id)}
+                          className="p-1.5 text-slate-600 hover:text-red-400 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-3 shrink-0">
-                      <div
-                        className={`text-sm sm:text-base font-extrabold ${
-                          isExpense ? 'text-rose-400' : 'text-emerald-400'
-                        }`}
-                      >
-                        {isExpense ? '-' : '+'}
-                        {tx.amount.toLocaleString('ru-RU')} ₽
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => deleteTransaction(tx.id)}
-                        title="Удалить запись"
-                        className="p-1.5 text-slate-600 hover:text-red-400 rounded-lg hover:bg-surface transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+        )}
       </main>
 
       {/* Кот-кликер в нижнем углу */}
