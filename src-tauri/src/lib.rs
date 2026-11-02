@@ -116,6 +116,12 @@ pub fn run() {
         description: "add_checklist_json_to_tasks",
         sql: "ALTER TABLE tasks ADD COLUMN checklist_json TEXT DEFAULT '[]';",
         kind: MigrationKind::Up,
+    },
+    Migration {
+        version: 4,
+        description: "add_indexes_for_performance",
+        sql: "CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date); CREATE INDEX IF NOT EXISTS idx_habits_streak ON habits(streak);",
+        kind: MigrationKind::Up,
     }];
 
     tauri::Builder::default()

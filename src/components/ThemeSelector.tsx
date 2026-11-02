@@ -46,6 +46,14 @@ const THEME_OPTIONS: ThemeOption[] = [
     accentColor: '#f43f5e',
     desc: 'Retrowave Violet & Neon Pink (#180a28)',
   },
+  {
+    id: 'nord',
+    label: 'Nordic',
+    shortLabel: 'Nord',
+    icon: '❄️',
+    accentColor: '#38bdf8',
+    desc: 'Arctic Frost & Glacier Cyan (#0f172a)',
+  },
 ];
 
 export const ThemeSelector: React.FC = () => {

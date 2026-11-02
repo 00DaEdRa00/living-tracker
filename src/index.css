@@ -43,6 +43,16 @@
   --color-accent-glow: 236 72 153;   /* #ec4899 */
 }
 
+[data-theme='nord'],
+.theme-nord {
+  --color-bg-app: 15 23 42;          /* #0f172a Polar Night */
+  --color-bg-surface: 30 41 59;      /* #1e293b */
+  --color-bg-card: 40 54 78;         /* #28364e */
+  --color-border-surface: 51 65 85;  /* #334155 */
+  --color-accent: 56 189 248;        /* #38bdf8 Frost Cyan */
+  --color-accent-glow: 14 165 233;   /* #0ea5e9 */
+}
+
 @layer base {
   html,
   body {

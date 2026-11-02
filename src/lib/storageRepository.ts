@@ -80,6 +80,12 @@ export async function getSqliteDb() {
     } catch {
       // Column already exists
     }
+    try {
+      await dbInstance.execute('CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date)');
+      await dbInstance.execute('CREATE INDEX IF NOT EXISTS idx_habits_streak ON habits(streak)');
+    } catch {
+      // Indexes already exist or unsupported
+    }
 
     return dbInstance;
   } catch (err) {

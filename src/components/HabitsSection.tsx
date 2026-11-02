@@ -25,11 +25,41 @@ import type { Habit } from '../types/tracker';
 import {
   playHabitCheckSound,
   playStreakFreezeSound,
+  playStreakMilestoneSound,
   playClickSound,
   playTrashSound,
   playEditSound,
 } from '../lib/soundFx';
+import { sendDesktopNotification } from '../lib/tauriBridge';
 import { HabitShareModal } from './HabitShareModal';
+
+export function getStreakBadge(streak: number): { label: string; badgeClass: string } | null {
+  if (streak >= 30) {
+    return {
+      label: '30+ дн Мастер 🔥',
+      badgeClass: 'bg-gradient-to-r from-amber-500/20 to-rose-500/20 border-amber-500/50 text-amber-300',
+    };
+  }
+  if (streak >= 21) {
+    return {
+      label: '21 дн Привычка ✨',
+      badgeClass: 'bg-purple-500/20 border-purple-500/50 text-purple-300',
+    };
+  }
+  if (streak >= 14) {
+    return {
+      label: '14 дн Стрик ⚡',
+      badgeClass: 'bg-sky-500/20 border-sky-500/50 text-sky-300',
+    };
+  }
+  if (streak >= 7) {
+    return {
+      label: '7 дн Неделя 🌟',
+      badgeClass: 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300',
+    };
+  }
+  return null;
+}
 
 export const HABIT_ICON_PRESETS = [
   { icon: '💧', label: 'Водный баланс' },
@@ -94,6 +124,7 @@ export const HabitsSection: React.FC = () => {
   const [sharingHabit, setSharingHabit] = useState<Habit | null>(null);
   const [heatmapDaysCount, setHeatmapDaysCount] = useState<28 | 56>(28);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [hoveredDay, setHoveredDay] = useState<{
     habitId: string;
@@ -143,13 +174,30 @@ export const HabitsSection: React.FC = () => {
 
   const handleToggle = (id: string, completedToday: boolean) => {
     if (!completedToday) {
-      playHabitCheckSound();
+      const targetHabit = habits.find((h) => h.id === id);
+      const nextStreak = (targetHabit?.streak || 0) + 1;
+      const isMilestone =
+        nextStreak >= 7 &&
+        (nextStreak % 7 === 0 || nextStreak === 21 || nextStreak === 30 || nextStreak === 50 || nextStreak === 100);
+
+      if (isMilestone) {
+        playStreakMilestoneSound();
+        sendDesktopNotification(
+          '🔥 Юбилей стрика!',
+          `Привычка "${targetHabit?.title || 'Привычка'}": стрик ${nextStreak} дней! Так держать!`
+        );
+      } else {
+        playHabitCheckSound();
+      }
+
       try {
         confetti({
-          particleCount: 70,
-          spread: 70,
+          particleCount: isMilestone ? 110 : 70,
+          spread: isMilestone ? 90 : 70,
           origin: { y: 0.65 },
-          colors: ['#10b981', '#38bdf8', '#fbbf24', '#f43f5e'],
+          colors: isMilestone
+            ? ['#fbbf24', '#f59e0b', '#ef4444', '#ec4899', '#38bdf8']
+            : ['#10b981', '#38bdf8', '#fbbf24', '#f43f5e'],
         });
       } catch {
         // no-op
@@ -163,7 +211,12 @@ export const HabitsSection: React.FC = () => {
   const handleFreeze = (id: string) => {
     const success = freezeHabit(id);
     if (success) {
+      const targetHabit = habits.find((h) => h.id === id);
       playStreakFreezeSound();
+      sendDesktopNotification(
+        '❄️ Стрик заморожен',
+        `Защита от сгорания активирована для "${targetHabit?.title || 'Привычка'}". Стрик сохранен!`
+      );
       try {
         // Ледяной сине-белый фейерверк
         confetti({
@@ -209,6 +262,12 @@ export const HabitsSection: React.FC = () => {
   // Фильтрация привычек по категории и поисковому запросу
   const filteredHabits = habits.filter((h) => {
     if (selectedCategory !== 'all' && (h.category || 'Здоровье/Спорт') !== selectedCategory) {
+      return false;
+    }
+    if (statusFilter === 'pending' && h.completedToday) {
+      return false;
+    }
+    if (statusFilter === 'completed' && !h.completedToday) {
       return false;
     }
     if (searchQuery.trim()) {
@@ -298,31 +357,82 @@ export const HabitsSection: React.FC = () => {
         </div>
       </div>
 
-      {/* Панель фильтров по категориям и поиск */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 rounded-2xl bg-surface-card/80 border border-surface-border">
-        {/* Категории */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 custom-scrollbar">
-          {HABIT_CATEGORY_PILLS.map((pill) => {
-            const isActive = selectedCategory === pill.id;
-            return (
-              <button
-                key={pill.id}
-                type="button"
-                onClick={() => {
-                  playClickSound();
-                  setSelectedCategory(pill.id);
-                }}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-accent/20 text-accent border border-accent/40 shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-surface'
-                }`}
-              >
-                <span>{pill.icon}</span>
-                <span>{pill.label}</span>
-              </button>
-            );
-          })}
+      {/* Панель фильтров по категориям, статусу и поиск */}
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3 rounded-2xl bg-surface-card/80 border border-surface-border">
+        {/* Категории и статус */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Фильтр по статусу (Все / Осталось / Закрыто) */}
+          <div className="flex items-center gap-1 bg-surface p-1 rounded-xl border border-surface-border shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setStatusFilter('all');
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                statusFilter === 'all'
+                  ? 'bg-accent/20 text-accent font-bold shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Все ({habits.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setStatusFilter('pending');
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                statusFilter === 'pending'
+                  ? 'bg-amber-500/20 text-amber-300 font-bold shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Осталось ({habits.length - completedTodayCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setStatusFilter('completed');
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                statusFilter === 'completed'
+                  ? 'bg-emerald-500/20 text-emerald-300 font-bold shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Закрыто ({completedTodayCount})
+            </button>
+          </div>
+
+          <div className="h-4 w-px bg-surface-border hidden sm:block" />
+
+          {/* Категории */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 custom-scrollbar">
+            {HABIT_CATEGORY_PILLS.map((pill) => {
+              const isActive = selectedCategory === pill.id;
+              return (
+                <button
+                  key={pill.id}
+                  type="button"
+                  onClick={() => {
+                    playClickSound();
+                    setSelectedCategory(pill.id);
+                  }}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-accent/20 text-accent border border-accent/40 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-surface'
+                  }`}
+                >
+                  <span>{pill.icon}</span>
+                  <span>{pill.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Поиск */}
@@ -486,9 +596,19 @@ export const HabitsSection: React.FC = () => {
                       {/* Текущий стрик */}
                       <div className="p-3 rounded-2xl bg-gradient-to-br from-amber-500/10 via-surface to-surface border border-amber-500/20 flex items-center justify-between">
                         <div>
-                          <span className="text-[10px] uppercase font-bold text-amber-400/80 tracking-wider">
-                            Текущий стрик
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] uppercase font-bold text-amber-400/80 tracking-wider">
+                              Текущий стрик
+                            </span>
+                            {(() => {
+                              const badge = getStreakBadge(habit.streak);
+                              return badge ? (
+                                <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded-full border ${badge.badgeClass}`}>
+                                  {badge.label}
+                                </span>
+                              ) : null;
+                            })()}
+                          </div>
                           <div className="flex items-baseline gap-1 mt-0.5">
                             <span className="text-2xl font-black text-white">
                               {habit.streak}

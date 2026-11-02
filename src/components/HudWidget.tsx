@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   Cat,
   Plus,
+  Snowflake,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
@@ -30,6 +31,7 @@ import {
 import {
   playCoinSound,
   playHabitCheckSound,
+  playStreakFreezeSound,
   playCatSound,
   playAchievementFanfare,
 } from '../lib/soundFx';
@@ -50,6 +52,7 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
   const tasks = useTrackerStore((state) => state.tasks);
   const catClicks = useTrackerStore((state) => state.catClicks);
   const toggleHabit = useTrackerStore((state) => state.toggleHabit);
+  const freezeHabit = useTrackerStore((state) => state.freezeHabit);
   const toggleTask = useTrackerStore((state) => state.toggleTask);
   const addTask = useTrackerStore((state) => state.addTask);
   const clickCat = useTrackerStore((state) => state.clickCat);
@@ -103,6 +106,23 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
   const handleHabitClick = (habitId: string) => {
     toggleHabit(habitId);
     playHabitCheckSound();
+  };
+
+  const handleFreezeHabit = (habitId: string) => {
+    const success = freezeHabit(habitId);
+    if (success) {
+      playStreakFreezeSound();
+      try {
+        confetti({
+          particleCount: 35,
+          spread: 45,
+          origin: { y: 0.75 },
+          colors: ['#38bdf8', '#0284c7', '#e0f2fe'],
+        });
+      } catch {
+        // safe fallback
+      }
+    }
   };
 
   const handleTaskClick = (taskId: string) => {
@@ -364,34 +384,60 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
 
         {activeTab === 'habits' && (
           <div className="space-y-2">
-            {habits.map((h) => (
-              <div
-                key={h.id}
-                onClick={() => handleHabitClick(h.id)}
-                className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                  h.completedToday
-                    ? 'bg-emerald-500/10 border-emerald-500/30'
-                    : 'bg-surface-card border-surface-border hover:border-accent/40'
-                }`}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-lg">{h.icon || '🎯'}</span>
-                  <div>
-                    <div className="text-xs font-semibold text-white truncate max-w-[180px]">
-                      {h.title}
-                    </div>
-                    <div className="text-[10px] text-slate-400">
-                      Стрик: {h.streak} дн. (рекорд {h.bestStreak || h.streak})
+            {habits.map((h) => {
+              const todayStr = new Date().toISOString().split('T')[0];
+              const isFrozen = (h.frozenDates || []).includes(todayStr);
+              return (
+                <div
+                  key={h.id}
+                  onClick={() => handleHabitClick(h.id)}
+                  className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                    h.completedToday
+                      ? 'bg-emerald-500/10 border-emerald-500/30'
+                      : isFrozen
+                      ? 'bg-sky-500/10 border-sky-500/30'
+                      : 'bg-surface-card border-surface-border hover:border-accent/40'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-lg">{h.icon || '🎯'}</span>
+                    <div>
+                      <div className="text-xs font-semibold text-white truncate max-w-[170px]">
+                        {h.title}
+                      </div>
+                      <div className="text-[10px] text-slate-400 flex items-center gap-1.5">
+                        <span>Стрик: {h.streak} дн.</span>
+                        {isFrozen && (
+                          <span className="text-sky-300 font-bold flex items-center gap-0.5">
+                            <Snowflake className="w-2.5 h-2.5" /> Заморожен
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-1.5">
+                    {!h.completedToday && !isFrozen && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFreezeHabit(h.id);
+                        }}
+                        title="Заморозить стрик на сегодня (защита от сгорания)"
+                        className="p-1 rounded-lg bg-sky-500/15 text-sky-400 hover:bg-sky-500/30 border border-sky-500/30 transition-all cursor-pointer"
+                      >
+                        <Snowflake className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {h.completedToday ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                    ) : (
+                      <Circle className="w-5 h-5 text-slate-500 hover:text-accent shrink-0" />
+                    )}
+                  </div>
                 </div>
-                {h.completedToday ? (
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                ) : (
-                  <Circle className="w-5 h-5 text-slate-500 hover:text-accent" />
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

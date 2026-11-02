@@ -31,7 +31,9 @@ import {
   playTrashSound,
   playEditSound,
   playSubtaskSound,
+  playSnoozeSound,
 } from '../lib/soundFx';
+import { sendDesktopNotification } from '../lib/tauriBridge';
 import { TaskShareModal } from './TaskShareModal';
 
 export interface LifeSphere {
@@ -205,7 +207,8 @@ export const TasksSection: React.FC = () => {
   const [selectedSphere, setSelectedSphere] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [deadlineFilter, setDeadlineFilter] = useState<DeadlineFilter>('all');
-  const [sortMode, setSortMode] = useState<'default' | 'urgency' | 'priority'>('default');
+  const [priorityFilter, setPriorityFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  const [sortMode, setSortMode] = useState<'default' | 'urgency' | 'priority' | 'newest' | 'alphabetical'>('default');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -280,7 +283,12 @@ export const TasksSection: React.FC = () => {
 
   const handleToggle = (id: string, completed: boolean) => {
     if (!completed) {
+      const target = tasks.find((t) => t.id === id);
       playTaskCompleteSound();
+      sendDesktopNotification(
+        '✅ Задача выполнена!',
+        `Задача "${target?.title || 'Без названия'}" завершена! +50 XP`
+      );
       try {
         confetti({
           particleCount: 50,
@@ -343,7 +351,7 @@ export const TasksSection: React.FC = () => {
   };
 
   const handleSnooze = (taskId: string, hoursToAdd: number) => {
-    playClickSound();
+    playSnoozeSound();
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
 
@@ -351,6 +359,10 @@ export const TasksSection: React.FC = () => {
     const effectiveBase = baseDate.getTime() < Date.now() ? new Date() : baseDate;
     const newDueDate = new Date(effectiveBase.getTime() + hoursToAdd * 60 * 60 * 1000).toISOString();
     updateTask(taskId, { dueDate: newDueDate });
+    sendDesktopNotification(
+      '⏰ Дедлайн перенесён',
+      `Задача "${task.title}": дедлайн отложен на +${hoursToAdd >= 24 ? `${hoursToAdd / 24} дн.` : `${hoursToAdd} ч.`}`
+    );
   };
 
   // Фильтрация задач
@@ -367,6 +379,11 @@ export const TasksSection: React.FC = () => {
         ? !task.completed
         : task.completed;
 
+    const matchesPriority =
+      priorityFilter === 'all'
+        ? true
+        : (task.priority || 'medium') === priorityFilter;
+
     const query = searchQuery.trim().toLowerCase();
     const matchesSearch =
       !query ||
@@ -375,7 +392,7 @@ export const TasksSection: React.FC = () => {
 
     const matchesDeadline = matchesDeadlineFilter(task, deadlineFilter, currentTime);
 
-    return matchesSphere && matchesStatus && matchesSearch && matchesDeadline;
+    return matchesSphere && matchesStatus && matchesPriority && matchesSearch && matchesDeadline;
   });
 
   // Сортировка задач
@@ -390,6 +407,14 @@ export const TasksSection: React.FC = () => {
       const wa = weights[a.priority || 'medium'] || 2;
       const wb = weights[b.priority || 'medium'] || 2;
       return wb - wa;
+    }
+    if (sortMode === 'newest') {
+      const aCreated = new Date(a.createdAt).getTime();
+      const bCreated = new Date(b.createdAt).getTime();
+      return bCreated - aCreated;
+    }
+    if (sortMode === 'alphabetical') {
+      return a.title.localeCompare(b.title, 'ru');
     }
     return 0;
   });
@@ -598,6 +623,34 @@ export const TasksSection: React.FC = () => {
             >
               Приоритет ⚡
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setSortMode('newest');
+              }}
+              className={`px-2 py-0.5 rounded-lg font-bold transition-colors ${
+                sortMode === 'newest'
+                  ? 'bg-surface-card text-sky-300 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Новые ⏱️
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setSortMode('alphabetical');
+              }}
+              className={`px-2 py-0.5 rounded-lg font-bold transition-colors ${
+                sortMode === 'alphabetical'
+                  ? 'bg-surface-card text-purple-300 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              А-Я 🔤
+            </button>
           </div>
 
           <span className="text-[11px] text-slate-400 hidden sm:inline-block">
@@ -605,9 +658,9 @@ export const TasksSection: React.FC = () => {
           </span>
         </div>
 
-        {/* Фильтры дедлайнов и срочности */}
-        <div className="flex items-center justify-between gap-2 pt-2 border-t border-surface-border/40 text-xs overflow-x-auto pb-1 sm:pb-0">
-          <div className="flex items-center gap-1.5">
+        {/* Фильтры дедлайнов, приоритета и срочности */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-surface-border/40 text-xs overflow-x-auto pb-1 sm:pb-0">
+          <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[10px] text-slate-500 font-bold px-1 flex items-center gap-1">
               <Clock className="w-3 h-3 text-slate-400" />
               <span className="hidden xs:inline">Сроки:</span>
@@ -682,6 +735,46 @@ export const TasksSection: React.FC = () => {
             >
               Без срока
             </button>
+
+            <div className="h-4 w-px bg-surface-border hidden md:block" />
+
+            {/* Фильтр по приоритету / срочности */}
+            <div className="flex items-center gap-1 bg-surface p-1 rounded-xl border border-surface-border">
+              {(['all', 'high', 'medium', 'low'] as const).map((p) => {
+                const isActive = priorityFilter === p;
+                const label =
+                  p === 'all'
+                    ? 'Все приоритеты'
+                    : p === 'high'
+                    ? 'Высокий 🔴'
+                    : p === 'medium'
+                    ? 'Средний 🟡'
+                    : 'Обычный ⚪';
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => {
+                      playClickSound();
+                      setPriorityFilter(p);
+                    }}
+                    className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                      isActive
+                        ? p === 'high'
+                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm'
+                          : p === 'medium'
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+                          : p === 'low'
+                          ? 'bg-slate-700/50 text-slate-200 border border-slate-600 shadow-sm'
+                          : 'bg-accent/20 text-accent border border-accent/40 shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 

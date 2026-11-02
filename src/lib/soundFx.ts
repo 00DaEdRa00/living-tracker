@@ -513,3 +513,79 @@ export function playSubtaskSound(): void {
     console.warn('Audio playSubtaskSound error:', err);
   }
 }
+
+/**
+ * 14. playStreakMilestoneSound() — триумфальное праздничное арпеджио при юбилее стрика (7, 14, 21, 30+ дней)
+ */
+export function playStreakMilestoneSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    // D-мажорное фанфарное восхождение: D5 -> F#5 -> A5 -> D6 -> F#6
+    const notes = [
+      { freq: 587.33, time: 0.0, dur: 0.12, vol: 0.22 }, // D5
+      { freq: 739.99, time: 0.07, dur: 0.12, vol: 0.24 }, // F#5
+      { freq: 880.0, time: 0.14, dur: 0.14, vol: 0.26 }, // A5
+      { freq: 1174.66, time: 0.21, dur: 0.25, vol: 0.3 }, // D6
+      { freq: 1479.98, time: 0.3, dur: 0.65, vol: 0.34 }, // F#6
+    ];
+
+    notes.forEach(({ freq, time, dur, vol }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + time);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.setValueAtTime(vol, now + time);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + time + dur);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + time);
+      osc.stop(now + time + dur + 0.02);
+    });
+  } catch (err) {
+    console.warn('Audio playStreakMilestoneSound error:', err);
+  }
+}
+
+/**
+ * 15. playSnoozeSound() — мягкий двухтональный перелив (A4 -> E4) при откладывании дедлайна
+ */
+export function playSnoozeSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const notes = [
+      { freq: 440.0, time: 0.0, dur: 0.1, vol: 0.2 }, // A4
+      { freq: 329.63, time: 0.08, dur: 0.18, vol: 0.18 }, // E4
+    ];
+
+    notes.forEach(({ freq, time, dur, vol }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + time);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.setValueAtTime(vol, now + time);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + time + dur);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + time);
+      osc.stop(now + time + dur + 0.01);
+    });
+  } catch (err) {
+    console.warn('Audio playSnoozeSound error:', err);
+  }
+}
