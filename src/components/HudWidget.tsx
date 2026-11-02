@@ -455,6 +455,11 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
                         До {new Date(t.dueDate).toLocaleDateString('ru-RU')}
                       </div>
                     )}
+                    {t.checklist && t.checklist.length > 0 && (
+                      <div className="text-[9px] text-accent flex items-center gap-1 font-semibold mt-0.5">
+                        <span>Шаги: {t.checklist.filter((s) => s.completed).length}/{t.checklist.length}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 {t.completed ? (

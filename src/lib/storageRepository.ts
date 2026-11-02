@@ -62,15 +62,21 @@ export async function getSqliteDb() {
         category TEXT,
         icon TEXT,
         image_url TEXT,
+        checklist_json TEXT DEFAULT '[]',
         due_date TEXT,
         created_at TEXT NOT NULL,
         completed_at TEXT
       );
     `);
 
-    // Migration guard: ensure image_url column exists if table was created in earlier sprint
+    // Migration guard: ensure image_url and checklist_json columns exist if table was created in earlier sprint
     try {
       await dbInstance.execute('ALTER TABLE tasks ADD COLUMN image_url TEXT');
+    } catch {
+      // Column already exists
+    }
+    try {
+      await dbInstance.execute("ALTER TABLE tasks ADD COLUMN checklist_json TEXT DEFAULT '[]'");
     } catch {
       // Column already exists
     }
@@ -250,8 +256,8 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
   if (Array.isArray(state.tasks)) {
     for (const t of state.tasks) {
       await db.execute(
-        `INSERT INTO tasks (id, title, description, completed, priority, category, icon, image_url, due_date, created_at, completed_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        `INSERT INTO tasks (id, title, description, completed, priority, category, icon, image_url, checklist_json, due_date, created_at, completed_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
          ON CONFLICT(id) DO UPDATE SET
            title = excluded.title,
            description = excluded.description,
@@ -260,6 +266,7 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
            category = excluded.category,
            icon = excluded.icon,
            image_url = excluded.image_url,
+           checklist_json = excluded.checklist_json,
            due_date = excluded.due_date,
            completed_at = excluded.completed_at`,
         [
@@ -271,6 +278,7 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
           t.category || null,
           t.icon || null,
           t.imageUrl || null,
+          JSON.stringify(t.checklist || []),
           t.dueDate || null,
           t.createdAt || new Date().toISOString(),
           t.completedAt || null,

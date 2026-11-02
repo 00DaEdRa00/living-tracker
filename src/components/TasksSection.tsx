@@ -19,12 +19,19 @@ import {
   Search,
   Edit3,
   Share2,
+  ListTodo,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
-import type { Task } from '../types/tracker';
+import type { Task, Subtask } from '../types/tracker';
 import { PluginSlotRenderer } from './PluginSlots';
-import { playTaskCompleteSound, playClickSound, playTrashSound, playEditSound } from '../lib/soundFx';
+import {
+  playTaskCompleteSound,
+  playClickSound,
+  playTrashSound,
+  playEditSound,
+  playSubtaskSound,
+} from '../lib/soundFx';
 import { TaskShareModal } from './TaskShareModal';
 
 export interface LifeSphere {
@@ -190,6 +197,9 @@ export const TasksSection: React.FC = () => {
   const updateTask = useTrackerStore((state) => state.updateTask);
   const deleteTask = useTrackerStore((state) => state.deleteTask);
   const clearCompletedTasks = useTrackerStore((state) => state.clearCompletedTasks);
+  const toggleSubtask = useTrackerStore((state) => state.toggleSubtask);
+  const addSubtask = useTrackerStore((state) => state.addSubtask);
+  const removeSubtask = useTrackerStore((state) => state.removeSubtask);
   const tone = useTrackerStore((state) => state.tone);
 
   const [selectedSphere, setSelectedSphere] = useState<string>('all');
@@ -199,6 +209,7 @@ export const TasksSection: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [inlineSubtaskText, setInlineSubtaskText] = useState<{ [taskId: string]: string }>({});
 
   // Модалки шеринга и редактирования
   const [sharingTask, setSharingTask] = useState<Task | null>(null);
@@ -864,6 +875,126 @@ export const TasksSection: React.FC = () => {
                         )}
                       </div>
                     </div>
+
+                    {/* Чек-лист шагов (Sprint 2: Планы) */}
+                    {task.checklist && task.checklist.length > 0 && (
+                      <div className="mt-3 p-2.5 rounded-xl bg-surface/70 border border-surface-border/70 space-y-2">
+                        {(() => {
+                          const completedCount = task.checklist.filter((st) => st.completed).length;
+                          const totalCount = task.checklist.length;
+                          const pct = Math.round((completedCount / totalCount) * 100);
+                          return (
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between text-[10px] font-bold text-slate-400">
+                                <span className="flex items-center gap-1 text-slate-300">
+                                  <ListTodo className="w-3 h-3 text-accent" />
+                                  <span>План шагов ({completedCount}/{totalCount})</span>
+                                </span>
+                                <span className={pct === 100 ? 'text-emerald-400 font-bold' : 'text-accent'}>
+                                  {pct}%
+                                </span>
+                              </div>
+                              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full transition-all duration-300 ${
+                                    pct === 100 ? 'bg-emerald-400' : 'bg-accent'
+                                  }`}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        <div className="space-y-1 pt-0.5">
+                          {task.checklist.map((st) => (
+                            <div
+                              key={st.id}
+                              className="group/st flex items-center justify-between gap-2 py-0.5 text-xs"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  toggleSubtask(task.id, st.id);
+                                  playSubtaskSound();
+                                }}
+                                className="flex items-center gap-2 text-left min-w-0 flex-1 hover:text-white transition-colors cursor-pointer"
+                              >
+                                {st.completed ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 stroke-[2.5]" />
+                                ) : (
+                                  <Circle className="w-3.5 h-3.5 text-slate-500 hover:text-accent shrink-0" />
+                                )}
+                                <span
+                                  className={`truncate text-[11px] leading-tight ${
+                                    st.completed ? 'line-through text-slate-500' : 'text-slate-300'
+                                  }`}
+                                >
+                                  {st.title}
+                                </span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  removeSubtask(task.id, st.id);
+                                  playClickSound();
+                                }}
+                                title="Удалить шаг"
+                                className="opacity-0 group-hover/st:opacity-100 p-0.5 text-slate-500 hover:text-rose-400 transition-opacity cursor-pointer"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Быстрое добавление подзадачи */}
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const val = inlineSubtaskText[task.id] || '';
+                            if (!val.trim()) return;
+                            addSubtask(task.id, val.trim());
+                            setInlineSubtaskText((prev) => ({ ...prev, [task.id]: '' }));
+                            playClickSound();
+                          }}
+                          className="flex items-center gap-1 pt-1"
+                        >
+                          <input
+                            type="text"
+                            placeholder="+ Добавить шаг..."
+                            value={inlineSubtaskText[task.id] || ''}
+                            onChange={(e) =>
+                              setInlineSubtaskText((prev) => ({ ...prev, [task.id]: e.target.value }))
+                            }
+                            className="flex-1 bg-surface-card px-2 py-1 text-[11px] rounded-lg border border-surface-border text-white placeholder:text-slate-500 focus:outline-none focus:border-accent"
+                          />
+                          <button
+                            type="submit"
+                            disabled={!inlineSubtaskText[task.id]?.trim()}
+                            className="px-2 py-1 text-[10px] font-bold rounded-lg bg-accent/20 text-accent hover:bg-accent hover:text-slate-950 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </form>
+                      </div>
+                    )}
+
+                    {(!task.checklist || task.checklist.length === 0) && (
+                      <div className="mt-1 flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            addSubtask(task.id, 'Первый шаг плана');
+                            playClickSound();
+                          }}
+                          className="opacity-0 group-hover:opacity-100 flex items-center gap-1 text-[10px] text-slate-400 hover:text-accent transition-all cursor-pointer py-0.5 px-1 rounded hover:bg-surface"
+                        >
+                          <ListTodo className="w-3 h-3" />
+                          <span>+ Чек-лист шагов</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Нижняя панель карточки: Дедлайн с таймером и статус срочности */}

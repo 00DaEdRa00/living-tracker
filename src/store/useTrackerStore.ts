@@ -112,6 +112,11 @@ const initialTasks: Task[] = [
     category: 'Работа',
     icon: '💻',
     imageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
+    checklist: [
+      { id: 'st-1-1', title: 'Входящие Telegram', completed: true },
+      { id: 'st-1-2', title: 'Рабочая почта и тикеты', completed: false },
+      { id: 'st-1-3', title: 'Архивация спама', completed: false },
+    ],
   },
   {
     id: 'task-2',
@@ -123,6 +128,10 @@ const initialTasks: Task[] = [
     priority: 'high',
     category: 'Быт',
     icon: '💡',
+    checklist: [
+      { id: 'st-2-1', title: 'Показания счетчика воды', completed: true },
+      { id: 'st-2-2', title: 'Квитанция за свет', completed: false },
+    ],
   },
   {
     id: 'task-3',
@@ -593,6 +602,50 @@ export const useTrackerStore = create<TrackerStore>()(
         updateTask: (id, updates) => {
           setState((state) => ({
             tasks: state.tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+          }));
+        },
+
+        toggleSubtask: (taskId, subtaskId) => {
+          setState((state) => ({
+            tasks: state.tasks.map((t) => {
+              if (t.id !== taskId || !t.checklist) return t;
+              return {
+                ...t,
+                checklist: t.checklist.map((st) =>
+                  st.id === subtaskId ? { ...st, completed: !st.completed } : st
+                ),
+              };
+            }),
+          }));
+        },
+
+        addSubtask: (taskId, title) => {
+          if (!title.trim()) return;
+          const subId =
+            typeof crypto !== 'undefined' && crypto.randomUUID
+              ? crypto.randomUUID()
+              : `st_${Date.now()}`;
+          setState((state) => ({
+            tasks: state.tasks.map((t) => {
+              if (t.id !== taskId) return t;
+              const current = t.checklist || [];
+              return {
+                ...t,
+                checklist: [...current, { id: subId, title: title.trim(), completed: false }],
+              };
+            }),
+          }));
+        },
+
+        removeSubtask: (taskId, subtaskId) => {
+          setState((state) => ({
+            tasks: state.tasks.map((t) => {
+              if (t.id !== taskId || !t.checklist) return t;
+              return {
+                ...t,
+                checklist: t.checklist.filter((st) => st.id !== subtaskId),
+              };
+            }),
           }));
         },
 

@@ -270,6 +270,22 @@ export const TaskShareModal: React.FC<TaskShareModalProps> = ({ task, onClose })
                   {task.description}
                 </p>
               )}
+
+              {task.checklist && task.checklist.length > 0 && (
+                <div className="text-[11px] text-accent bg-accent/10 px-3 py-1.5 rounded-xl border border-accent/20 flex items-center justify-between">
+                  <span>
+                    План шагов: {task.checklist.filter((s) => s.completed).length} из{' '}
+                    {task.checklist.length} закрыто
+                  </span>
+                  <span className="font-bold">
+                    {Math.round(
+                      (task.checklist.filter((s) => s.completed).length / task.checklist.length) *
+                        100
+                    )}
+                    %
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Punchline Card */}

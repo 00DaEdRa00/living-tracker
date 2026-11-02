@@ -110,6 +110,12 @@ pub fn run() {
         description: "add_image_url_to_tasks",
         sql: "ALTER TABLE tasks ADD COLUMN image_url TEXT;",
         kind: MigrationKind::Up,
+    },
+    Migration {
+        version: 3,
+        description: "add_checklist_json_to_tasks",
+        sql: "ALTER TABLE tasks ADD COLUMN checklist_json TEXT DEFAULT '[]';",
+        kind: MigrationKind::Up,
     }];
 
     tauri::Builder::default()

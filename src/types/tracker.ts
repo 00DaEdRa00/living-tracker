@@ -31,6 +31,12 @@ export interface Habit {
   createdAt: string; // ISO date string
 }
 
+export interface Subtask {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -43,6 +49,7 @@ export interface Task {
   category?: string;
   icon?: string;
   imageUrl?: string;
+  checklist?: Subtask[];
 }
 
 export interface Budget {
@@ -135,6 +142,9 @@ export interface TrackerActions {
   updateHabit: (id: string, updates: Partial<Habit>) => void;
   addTask: (task: Omit<Task, 'id' | 'completed' | 'createdAt'> & { id?: string; createdAt?: string }) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
+  toggleSubtask: (taskId: string, subtaskId: string) => void;
+  addSubtask: (taskId: string, title: string) => void;
+  removeSubtask: (taskId: string, subtaskId: string) => void;
   deleteHabit: (id: string) => void;
   deleteTask: (id: string) => void;
   clearCompletedTasks: () => void;
