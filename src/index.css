@@ -2,10 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+:root,
+[data-theme='amoled'],
+.theme-amoled {
+  --color-bg-app: 9 13 22;          /* #090d16 Midnight Black */
+  --color-bg-surface: 17 24 39;      /* #111827 */
+  --color-bg-card: 22 31 51;         /* #161f33 */
+  --color-border-surface: 30 41 59;  /* #1e293b */
+  --color-accent: 56 189 248;        /* #38bdf8 Neon Cyan */
+  --color-accent-glow: 14 165 233;   /* #0ea5e9 */
+}
+
+[data-theme='cyberpunk'],
+.theme-cyberpunk {
+  --color-bg-app: 18 7 38;           /* #120726 Deep Neon Purple */
+  --color-bg-surface: 28 13 56;      /* #1c0d38 */
+  --color-bg-card: 40 19 77;         /* #28134d */
+  --color-border-surface: 76 29 149; /* #4c1d95 */
+  --color-accent: 250 204 21;        /* #facc15 Neon Yellow */
+  --color-accent-glow: 234 179 8;    /* #eab308 */
+}
+
+[data-theme='emerald'],
+.theme-emerald {
+  --color-bg-app: 6 26 20;           /* #061a14 Deep Emerald */
+  --color-bg-surface: 10 46 35;      /* #0a2e23 */
+  --color-bg-card: 15 61 48;         /* #0f3d30 */
+  --color-border-surface: 26 86 68;  /* #1a5644 */
+  --color-accent: 251 191 36;        /* #fbbf24 Soft Gold */
+  --color-accent-glow: 245 158 11;   /* #f59e0b */
+}
+
 @layer base {
+  html,
   body {
     margin: 0;
     overflow-x: hidden;
-    background-color: #090d16;
+    background-color: rgb(var(--color-bg-app));
+    color: #f1f5f9;
+    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
   }
 }

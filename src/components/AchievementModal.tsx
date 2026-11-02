@@ -2,32 +2,36 @@ import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import html2canvas from 'html2canvas';
-import { Share2, X, Trophy, Check, Download } from 'lucide-react';
+import { Copy, Download, X, Trophy, Check, Zap, Sparkles } from 'lucide-react';
 import { useTrackerStore, getAchievementText } from '../store/useTrackerStore';
 import { RARITIES_META, CATEGORIES_META } from '../data/achievements';
+import { playAchievementFanfare } from '../lib/soundFx';
 
 export const AchievementModal: React.FC = () => {
   const recentUnlocked = useTrackerStore((state) => state.recentUnlocked);
   const closeAchievementModal = useTrackerStore((state) => state.closeAchievementModal);
   const tone = useTrackerStore((state) => state.tone);
 
-  const [copied, setCopied] = useState(false);
+  const [copying, setCopying] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [copiedAlert, setCopiedAlert] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (recentUnlocked) {
-      setCopied(false);
+      setCopiedAlert(null);
+      // Победный мажорный арпеджио-аккорд
+      playAchievementFanfare();
+
       // Салют конфетти при открытии
       try {
         confetti({
-          particleCount: 110,
-          spread: 80,
+          particleCount: 120,
+          spread: 85,
           origin: { y: 0.55 },
           colors: ['#38bdf8', '#a855f7', '#f59e0b', '#10b981', '#ef4444'],
         });
       } catch (err) {
-        // Safe fallback in case canvas-confetti has environment issue
         console.warn('Confetti error:', err);
       }
     }
@@ -42,31 +46,75 @@ export const AchievementModal: React.FC = () => {
   const categoryMeta = CATEGORIES_META[recentUnlocked.category] || CATEGORIES_META.system;
   const localized = getAchievementText(recentUnlocked, tone);
 
-  const handleShare = async () => {
-    const textToShare = `🏆 «Живой трекер» — Достижение разблокировано!\n${recentUnlocked.icon} ${localized.title} [${rarityMeta.label}]\n«${localized.description}»`;
+  const shareText = `🏆 «Живой трекер» — Достижение разблокировано!\n${recentUnlocked.icon} ${localized.title} [${rarityMeta.label}]\n«${localized.description}»`;
 
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(textToShare);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2500);
-      } catch {
-        // Fallback
+  // Генерация canvas с масштабом 2x
+  const generateCanvas = async () => {
+    if (!cardRef.current) return null;
+    return await html2canvas(cardRef.current, {
+      scale: 2,
+      backgroundColor: '#090d16',
+      useCORS: true,
+      logging: false,
+    });
+  };
+
+  // Копирование Blob PNG напрямую в буфер обмена
+  const handleCopyImage = async () => {
+    if (!cardRef.current || copying) return;
+    try {
+      setCopying(true);
+      const canvas = await generateCanvas();
+      if (!canvas) throw new Error('Canvas not generated');
+
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((b) => resolve(b), 'image/png', 1.0);
+      });
+
+      if (!blob) throw new Error('Failed to create PNG blob');
+
+      if (
+        typeof navigator !== 'undefined' &&
+        navigator.clipboard &&
+        typeof ClipboardItem !== 'undefined' &&
+        navigator.clipboard.write
+      ) {
+        const item = new ClipboardItem({ 'image/png': blob });
+        await navigator.clipboard.write([item]);
+        setCopiedAlert('Скопировано в буфер! Вставь в Telegram через Ctrl+V');
+        setTimeout(() => setCopiedAlert(null), 4500);
+      } else {
+        // Fallback: копирование текста
+        await navigator.clipboard.writeText(shareText);
+        setCopiedAlert('Текст ачивки скопирован!');
+        setTimeout(() => setCopiedAlert(null), 3000);
       }
+    } catch (err) {
+      console.warn('Image clipboard write failed, fallback to text:', err);
+      try {
+        await navigator.clipboard.writeText(shareText);
+        setCopiedAlert('Текст ачивки скопирован!');
+        setTimeout(() => setCopiedAlert(null), 3000);
+      } catch {
+        setCopiedAlert('Не удалось скопировать. Нажмите «Скачать PNG»');
+        setTimeout(() => setCopiedAlert(null), 3500);
+      }
+    } finally {
+      setCopying(false);
     }
   };
 
-  const handleDownloadCard = async () => {
+  // Скачивание PNG карточки в высоком качестве (2x)
+  const handleDownloadPng = async () => {
     if (!cardRef.current || downloading) return;
     try {
       setDownloading(true);
-      const canvas = await html2canvas(cardRef.current, {
-        background: '#090d16',
-        logging: false,
-      });
+      const canvas = await generateCanvas();
+      if (!canvas) throw new Error('Canvas not generated');
+
       const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
-      link.download = `achievement-${recentUnlocked.id}.png`;
+      link.download = `living-tracker-${recentUnlocked.id}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -76,123 +124,196 @@ export const AchievementModal: React.FC = () => {
     }
   };
 
+  const todayStr = new Date().toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
         {/* Backdrop clickable */}
-        <div
-          className="absolute inset-0"
-          onClick={closeAchievementModal}
-        />
+        <div className="fixed inset-0" onClick={closeAchievementModal} />
 
-        {/* Карточка ачивки */}
+        {/* Контейнер модалки */}
         <motion.div
-          ref={cardRef}
-          initial={{ scale: 0.8, opacity: 0, y: 20 }}
+          initial={{ scale: 0.85, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.85, opacity: 0, y: 15 }}
           transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-          className="relative z-10 w-full max-w-md overflow-hidden rounded-3xl bg-surface-card border border-surface-border p-6 sm:p-8 shadow-2xl shadow-purple-950/40 text-center"
+          className="relative z-10 w-full max-w-[460px] my-auto flex flex-col items-center"
         >
-          {/* Световые неоновые блики */}
-          <div
-            className="absolute -top-24 left-1/2 -translate-x-1/2 w-48 h-48 rounded-full blur-3xl pointer-events-none opacity-40"
-            style={{ backgroundColor: rarityMeta.color }}
-          />
-
-          {/* Кнопка закрытия */}
+          {/* Кнопка закрытия модалки */}
           <button
             type="button"
             onClick={closeAchievementModal}
-            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-full bg-surface/50 hover:bg-surface border border-surface-border transition-colors focus:outline-none"
+            className="absolute -top-3 -right-3 z-30 p-2 text-slate-400 hover:text-white rounded-full bg-slate-900/90 hover:bg-slate-800 border border-slate-700 shadow-xl transition-colors focus:outline-none"
+            title="Закрыть"
           >
             <X className="w-5 h-5" />
           </button>
 
-          {/* Верхняя плашка: категория и редкость */}
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
-              <span>{categoryMeta.icon}</span>
-              <span>{categoryMeta.label}</span>
-            </span>
-
-            <span
-              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider border shadow-sm"
-              style={{
-                color: rarityMeta.color,
-                borderColor: `${rarityMeta.color}60`,
-                backgroundColor: `${rarityMeta.color}15`,
-              }}
-            >
-              <Trophy className="w-3 h-3" />
-              <span>{rarityMeta.label}</span>
-            </span>
-          </div>
-
-          {/* Большая иконка ачивки с анимацией */}
-          <motion.div
-            initial={{ scale: 0.5, rotate: -15 }}
-            animate={{ scale: [1, 1.15, 1], rotate: [0, 5, 0] }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="relative mx-auto my-3 w-24 h-24 flex items-center justify-center rounded-3xl bg-gradient-to-b from-white/10 to-transparent border border-white/10 shadow-inner"
+          {/* КАРТОЧКА АЧИВКИ (для экспорта через html2canvas) */}
+          <div
+            ref={cardRef}
+            className="w-full relative overflow-hidden rounded-3xl p-6 sm:p-7 text-center select-none"
             style={{
-              boxShadow: `0 0 35px ${rarityMeta.color}40`,
+              backgroundColor: '#0c121e',
+              border: `2px solid ${rarityMeta.color}`,
+              boxShadow: `0 0 35px ${rarityMeta.color}40, inset 0 0 30px rgba(0,0,0,0.7)`,
             }}
           >
-            <span className="text-5xl select-none filter drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
-              {recentUnlocked.icon}
-            </span>
-          </motion.div>
+            {/* Неоновый градиентный фон */}
+            <div
+              className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-40"
+              style={{ backgroundColor: rarityMeta.color }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] via-transparent to-black/60 pointer-events-none" />
 
-          {/* Заголовок */}
-          <div className="text-[11px] font-bold text-accent tracking-widest uppercase mb-1">
-            Новое достижение!
+            {/* Верхняя плашка карточки: Логотип приложения + Бейджи */}
+            <div className="relative z-10 flex items-center justify-between gap-2 pb-4 border-b border-white/10">
+              {/* Логотип «Живой трекер» */}
+              <div className="flex items-center gap-2 text-left">
+                <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-tr from-accent to-purple-600 shadow-md">
+                  <Zap className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <div className="text-xs font-black text-white tracking-tight leading-none">
+                    Живой трекер
+                  </div>
+                  <div className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider leading-none mt-0.5">
+                    Достижения
+                  </div>
+                </div>
+              </div>
+
+              {/* Бейджи категории и редкости */}
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-800/90 text-slate-300 border border-slate-700">
+                  <span>{categoryMeta.icon}</span>
+                  <span className="hidden xs:inline">{categoryMeta.label}</span>
+                </span>
+
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shadow-sm"
+                  style={{
+                    color: rarityMeta.color,
+                    borderColor: `${rarityMeta.color}70`,
+                    backgroundColor: `${rarityMeta.color}20`,
+                  }}
+                >
+                  <Trophy className="w-3 h-3" />
+                  <span>{rarityMeta.label}</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Большая светящаяся иконка ачивки */}
+            <div className="relative z-10 my-5 flex flex-col items-center justify-center">
+              <div
+                className="relative w-24 h-24 flex items-center justify-center rounded-3xl bg-gradient-to-b from-white/15 to-transparent border shadow-inner"
+                style={{
+                  borderColor: `${rarityMeta.color}60`,
+                  boxShadow: `0 0 30px ${rarityMeta.color}50`,
+                }}
+              >
+                <span className="text-5xl select-none filter drop-shadow-[0_4px_16px_rgba(0,0,0,0.6)]">
+                  {recentUnlocked.icon}
+                </span>
+                <Sparkles
+                  className="w-4 h-4 absolute -top-1.5 -right-1.5"
+                  style={{ color: rarityMeta.color }}
+                />
+              </div>
+
+              {/* Оверлайн */}
+              <div className="mt-4 text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-accent flex items-center gap-1.5">
+                <span>✦</span>
+                <span>Достижение разблокировано</span>
+                <span>✦</span>
+              </div>
+
+              {/* Название ачивки */}
+              <h3 className="mt-1 text-2xl sm:text-3xl font-black text-white tracking-tight">
+                {localized.title}
+              </h3>
+            </div>
+
+            {/* Описание строго в выбранном тоне (нейтральный / ироничный / дерзкий) */}
+            <div className="relative z-10 text-left bg-black/40 border border-white/10 rounded-2xl p-3.5 mb-4 backdrop-blur-sm">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <span>Тон:</span>
+                <span className="text-accent font-extrabold capitalize">
+                  {tone === 'neutral'
+                    ? 'Нейтральный'
+                    : tone === 'ironic'
+                    ? 'Ироничный'
+                    : 'Дерзкий (18+)'}
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-200 leading-relaxed italic">
+                «{localized.description}»
+              </p>
+            </div>
+
+            {/* Нижний колонтитул карточки */}
+            <div className="relative z-10 pt-3 border-t border-white/10 flex items-center justify-between text-[10px] text-slate-400">
+              <span className="font-medium">{todayStr}</span>
+              <span className="font-bold text-slate-300 flex items-center gap-1">
+                <span>⚡</span>
+                <span>living-tracker.app</span>
+              </span>
+            </div>
           </div>
-          <h3 className="text-2xl font-extrabold text-white tracking-tight mb-2">
-            {localized.title}
-          </h3>
 
-          {/* Описание с учётом тона */}
-          <p className="text-sm text-slate-300 leading-relaxed max-w-sm mx-auto mb-6 bg-surface/40 p-3 rounded-2xl border border-white/5">
-            {localized.description}
-          </p>
+          {/* Уведомление о копировании */}
+          <AnimatePresence>
+            {copiedAlert && (
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                className="w-full mt-3 px-4 py-2.5 rounded-2xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 text-xs font-bold text-center flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40"
+              >
+                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{copiedAlert}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          {/* Кнопки действий */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          {/* ПАНЕЛЬ КНОПОК ДЕЙСТВИЙ (ВНЕ КАРТОЧКИ) */}
+          <div className="w-full mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            {/* Кнопка «Скопировать картинку» */}
             <button
               type="button"
-              onClick={handleShare}
-              className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl font-semibold text-sm text-white bg-surface hover:bg-surface-border border border-slate-700 transition-colors"
+              onClick={handleCopyImage}
+              disabled={copying}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-xs sm:text-sm text-white bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-accent transition-all duration-200 cursor-pointer shadow-md disabled:opacity-50"
             >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4 text-emerald-400" />
-                  <span className="text-emerald-400">Скопировано!</span>
-                </>
-              ) : (
-                <>
-                  <Share2 className="w-4 h-4 text-accent" />
-                  <span>Поделиться</span>
-                </>
-              )}
+              <Copy className="w-4 h-4 text-accent" />
+              <span>{copying ? 'Копирование...' : 'Скопировать картинку'}</span>
             </button>
 
+            {/* Кнопка «Скачать PNG» */}
             <button
               type="button"
-              onClick={handleDownloadCard}
+              onClick={handleDownloadPng}
               disabled={downloading}
-              title="Сохранить картинку ачивки"
-              className="p-2.5 rounded-2xl font-semibold text-sm text-slate-300 hover:text-white bg-surface hover:bg-surface-border border border-slate-700 transition-colors"
+              title="Скачать карточку в формате PNG (2x)"
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-xs sm:text-sm text-white bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-accent transition-all duration-200 cursor-pointer shadow-md disabled:opacity-50"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-4 h-4 text-accent" />
+              <span>{downloading ? 'Сохранение...' : 'Скачать PNG'}</span>
             </button>
 
+            {/* Кнопка «Круто!» */}
             <button
               type="button"
               onClick={closeAchievementModal}
-              className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-accent to-blue-600 hover:from-accent hover:to-blue-500 shadow-lg shadow-accent/25 transition-all"
+              className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-2xl font-black text-xs sm:text-sm text-white bg-gradient-to-r from-accent to-blue-600 hover:from-accent hover:to-blue-500 shadow-lg shadow-accent/25 transition-all duration-200 cursor-pointer"
             >
-              Круто!
+              <span>Круто!</span>
             </button>
           </div>
         </motion.div>

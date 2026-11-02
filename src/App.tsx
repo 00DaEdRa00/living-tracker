@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
@@ -19,16 +19,20 @@ import {
   CreditCard,
   ChevronRight,
   Calendar,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 
 import { useTrackerStore, ACHIEVEMENTS, eventBus } from './store/useTrackerStore';
 import ToneToggle from './components/ToneToggle';
+import ThemeSelector from './components/ThemeSelector';
 import BudgetRing from './components/BudgetRing';
 import CatClicker from './components/CatClicker';
 import AchievementModal from './components/AchievementModal';
 import QuickAddModal from './components/QuickAddModal';
 import TasksSection from './components/TasksSection';
 import HabitsSection from './components/HabitsSection';
+import { playCoinSound } from './lib/soundFx';
 
 export type DashboardTab = 'all' | 'tasks' | 'habits' | 'finances';
 
@@ -42,11 +46,22 @@ export const App: React.FC = () => {
   const habits = useTrackerStore((state) => state.habits);
   const tasks = useTrackerStore((state) => state.tasks);
   const tone = useTrackerStore((state) => state.tone);
+  const theme = useTrackerStore((state) => state.theme);
+  const soundEnabled = useTrackerStore((state) => state.soundEnabled);
+  const toggleSound = useTrackerStore((state) => state.toggleSound);
   const catClicks = useTrackerStore((state) => state.catClicks);
   const unlockedAchievements = useTrackerStore((state) => state.unlockedAchievements);
   const toggleHabit = useTrackerStore((state) => state.toggleHabit);
   const toggleTask = useTrackerStore((state) => state.toggleTask);
   const deleteTransaction = useTrackerStore((state) => state.deleteTransaction);
+
+  // Синхронизация темы с корневым DOM-элементом
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.className = `theme-${theme}`;
+    }
+  }, [theme]);
 
   // Подсчёт XP и уровня
   const unlockedCount = Object.keys(unlockedAchievements).length;
@@ -99,7 +114,7 @@ export const App: React.FC = () => {
                   Живой трекер
                 </span>
                 <span className="hidden sm:inline-block text-[10px] font-bold px-2 py-0.5 bg-accent/15 border border-accent/40 text-accent rounded-full uppercase tracking-wider">
-                  Sprint 2
+                  Sprint 3
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-slate-400 truncate max-w-[200px] sm:max-w-md">
@@ -108,10 +123,42 @@ export const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Правая часть шапки: переключатель тона и XP */}
-          <div className="flex items-center gap-3 sm:gap-5">
+          {/* Правая часть шапки: темы, тон, звук и XP */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+            {/* Переключатель темы */}
+            <ThemeSelector />
+
             {/* Переключатель тона */}
             <ToneToggle />
+
+            {/* Тумблер звука (громкоговоритель 🔊/🔇) */}
+            <button
+              type="button"
+              onClick={() => {
+                const willEnable = !soundEnabled;
+                toggleSound();
+                if (willEnable) {
+                  setTimeout(() => playCoinSound(), 50);
+                }
+              }}
+              title={
+                soundEnabled
+                  ? 'Звуковые эффекты: Включены (клик для отключения)'
+                  : 'Звуковые эффекты: Выключены (клик для включения)'
+              }
+              aria-label={soundEnabled ? 'Выключить звук' : 'Включить звук'}
+              className={`relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-2xl border transition-all duration-200 cursor-pointer focus:outline-none ${
+                soundEnabled
+                  ? 'bg-accent/15 border-accent/40 text-accent shadow-[0_0_12px_rgba(56,189,248,0.25)] hover:bg-accent/25'
+                  : 'bg-surface-card border-surface-border text-slate-500 hover:text-slate-300 hover:border-slate-600'
+              }`}
+            >
+              {soundEnabled ? (
+                <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
+              ) : (
+                <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />
+              )}
+            </button>
 
             {/* Баланс очков / XP */}
             <div className="flex items-center gap-3 px-3.5 py-1.5 rounded-2xl bg-surface-card border border-surface-border shadow-sm">

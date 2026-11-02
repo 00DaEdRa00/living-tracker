@@ -5,13 +5,13 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#090d16',
-        surface: '#111827',
-        'surface-card': '#161f33',
-        'surface-border': '#1e293b',
+        background: 'rgb(var(--color-bg-app) / <alpha-value>)',
+        surface: 'rgb(var(--color-bg-surface) / <alpha-value>)',
+        'surface-card': 'rgb(var(--color-bg-card) / <alpha-value>)',
+        'surface-border': 'rgb(var(--color-border-surface) / <alpha-value>)',
         accent: {
-          DEFAULT: '#38bdf8',
-          glow: '#0ea5e9',
+          DEFAULT: 'rgb(var(--color-accent) / <alpha-value>)',
+          glow: 'rgb(var(--color-accent-glow) / <alpha-value>)',
         },
         danger: {
           DEFAULT: '#ef4444',

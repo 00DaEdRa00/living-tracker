@@ -9,11 +9,18 @@ import type {
   Task,
   Budget,
   ToneMode,
+  AppTheme,
   AppEvent,
   Achievement,
 } from '../types/tracker';
 import { eventBus } from '../lib/eventBus';
 import { ACHIEVEMENTS } from '../data/achievements';
+import {
+  playCoinSound,
+  playHabitCheckSound,
+  playCatSound,
+  playOverageAlarm,
+} from '../lib/soundFx';
 
 export { eventBus };
 export { ACHIEVEMENTS, getAchievementText } from '../data/achievements';
@@ -278,6 +285,8 @@ export const useTrackerStore = create<TrackerStore>()(
         habits: initialHabits,
         tasks: initialTasks,
         tone: 'sassy',
+        theme: 'amoled',
+        soundEnabled: true,
         catClicks: 0,
         priceClicks: 0,
         unlockedAchievements: {},
@@ -312,6 +321,13 @@ export const useTrackerStore = create<TrackerStore>()(
             },
           }));
 
+          // Звуковой эффект: если расход превышает лимит — тревожный зуммер, иначе звон монет
+          if (isExpense && newSpent > getState().budget.monthlyLimit) {
+            playOverageAlarm();
+          } else {
+            playCoinSound();
+          }
+
           const event: AppEvent = {
             type: 'TRANSACTION_ADDED',
             payload: transaction,
@@ -336,6 +352,7 @@ export const useTrackerStore = create<TrackerStore>()(
             if (!newHistory.includes(today)) {
               newHistory.push(today);
             }
+            playHabitCheckSound();
           } else {
             newStreak = Math.max(0, habit.streak - 1);
             newHistory = newHistory.filter((d) => d !== today);
@@ -441,6 +458,8 @@ export const useTrackerStore = create<TrackerStore>()(
           const nextClicks = getState().catClicks + 1;
           setState({ catClicks: nextClicks });
 
+          playCatSound();
+
           const event: AppEvent = {
             type: 'CAT_CLICKED',
             payload: { totalClicks: nextClicks },
@@ -463,6 +482,22 @@ export const useTrackerStore = create<TrackerStore>()(
 
         setTone: (tone: ToneMode) => {
           setState({ tone });
+        },
+
+        setTheme: (theme: AppTheme) => {
+          setState({ theme });
+          if (typeof document !== 'undefined') {
+            document.documentElement.setAttribute('data-theme', theme);
+            document.documentElement.className = `theme-${theme}`;
+          }
+        },
+
+        toggleSound: () => {
+          setState((state) => ({ soundEnabled: !state.soundEnabled }));
+        },
+
+        setSoundEnabled: (soundEnabled: boolean) => {
+          setState({ soundEnabled });
         },
 
         closeAchievementModal: () => {
@@ -553,6 +588,8 @@ export const useTrackerStore = create<TrackerStore>()(
             habits: initialHabits,
             tasks: initialTasks,
             tone: 'sassy',
+            theme: 'amoled',
+            soundEnabled: true,
             catClicks: 0,
             priceClicks: 0,
             unlockedAchievements: {},

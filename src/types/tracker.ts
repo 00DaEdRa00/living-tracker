@@ -4,6 +4,8 @@
 
 export type ToneMode = 'neutral' | 'ironic' | 'sassy';
 
+export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald';
+
 export type TransactionType = 'expense' | 'income';
 
 export interface Transaction {
@@ -103,6 +105,8 @@ export interface TrackerState {
   habits: Habit[];
   tasks: Task[];
   tone: ToneMode;
+  theme: AppTheme;
+  soundEnabled: boolean;
   catClicks: number;
   priceClicks: number;
   unlockedAchievements: Record<string, string>; // achievement ID -> unlock ISO date
@@ -117,6 +121,9 @@ export interface TrackerActions {
   clickCat: () => void;
   clickPrice: () => void;
   setTone: (tone: ToneMode) => void;
+  setTheme: (theme: AppTheme) => void;
+  toggleSound: () => void;
+  setSoundEnabled: (enabled: boolean) => void;
   closeAchievementModal: () => void;
   
   // Extended helper actions
