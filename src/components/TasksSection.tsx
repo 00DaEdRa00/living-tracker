@@ -16,6 +16,7 @@ import {
   Timer,
   Image as ImageIcon,
   ArrowUpDown,
+  Search,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
@@ -157,6 +158,7 @@ export const TasksSection: React.FC = () => {
   const [selectedSphere, setSelectedSphere] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [sortMode, setSortMode] = useState<'default' | 'urgency' | 'priority'>('default');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -255,7 +257,13 @@ export const TasksSection: React.FC = () => {
         ? !task.completed
         : task.completed;
 
-    return matchesSphere && matchesStatus;
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch =
+      !query ||
+      task.title.toLowerCase().includes(query) ||
+      Boolean(task.description && task.description.toLowerCase().includes(query));
+
+    return matchesSphere && matchesStatus && matchesSearch;
   });
 
   // Сортировка задач
@@ -323,6 +331,28 @@ export const TasksSection: React.FC = () => {
 
       {/* Панель фильтров: Сферы жизни и статусы */}
       <div className="space-y-3">
+        {/* Строка поиска задач */}
+        <div className="relative flex items-center">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Поиск по названию или описанию задачи..."
+            className="w-full pl-10 pr-9 py-2 rounded-2xl bg-surface/80 border border-surface-border text-xs text-white placeholder-slate-500 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 p-1 rounded-lg text-slate-400 hover:text-white hover:bg-surface-card transition-colors"
+              title="Очистить поиск"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
         {/* Сферы жизни */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
           {LIFE_SPHERES.map((sphere) => {

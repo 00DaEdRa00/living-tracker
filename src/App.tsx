@@ -87,6 +87,48 @@ export const App: React.FC = () => {
     }
   }, [theme]);
 
+  // Глобальные клавиатурные хоткеи (Ctrl+Space / Cmd+Space для HUD, Ctrl+K для расхода, Ctrl+G для трофеев, Esc для закрытия)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isInput =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable);
+
+      // Ctrl+Space или Cmd+Space — вызов HUD-виджета (Tauri или браузерный оверлей)
+      if ((e.ctrlKey || e.metaKey) && (e.code === 'Space' || e.key === ' ')) {
+        e.preventDefault();
+        if (isTauri()) {
+          toggleHudWindow();
+        } else {
+          setIsHudPreviewOpen((prev) => !prev);
+          playCoinSound();
+        }
+      }
+      // Ctrl+K или Cmd+K — быстрое добавление расхода/дохода
+      else if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        setIsAddExpenseOpen((prev) => !prev);
+      }
+      // Ctrl+G или Cmd+G — Зал славы и достижения
+      else if ((e.ctrlKey || e.metaKey) && (e.key === 'g' || e.key === 'G')) {
+        e.preventDefault();
+        setIsGalleryOpen((prev) => !prev);
+      }
+      // Escape — закрытие активных модалок и превью
+      else if (e.key === 'Escape' && !isInput) {
+        setIsAddExpenseOpen(false);
+        setIsGalleryOpen(false);
+        setIsHudPreviewOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Подсчёт XP и уровня
   const unlockedCount = Object.keys(unlockedAchievements).length;
   const habitsScore = habits.reduce((acc, h) => acc + h.streak * 20 + (h.completedToday ? 30 : 0), 0);
@@ -224,8 +266,8 @@ export const App: React.FC = () => {
               }}
               title={
                 isTauri()
-                  ? 'Переключить нативный плавающий HUD виджет'
-                  : 'Превью плавающего HUD виджета'
+                  ? 'Переключить нативный плавающий HUD виджет (Ctrl+Space)'
+                  : 'Превью плавающего HUD виджета (Ctrl+Space)'
               }
               className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border transition-all duration-200 cursor-pointer focus:outline-none text-xs font-bold ${
                 isHudPreviewOpen
@@ -235,9 +277,9 @@ export const App: React.FC = () => {
             >
               <Zap className="w-3.5 h-3.5 text-accent animate-pulse" />
               <span className="hidden sm:inline">HUD</span>
-              <span className="text-[10px] px-1 py-0.2 rounded-full bg-accent/20 text-accent uppercase font-black">
-                виджет
-              </span>
+              <kbd className="hidden lg:inline-block text-[9px] px-1 py-0.2 rounded font-mono bg-surface border border-surface-border text-slate-400">
+                Ctrl+Space
+              </kbd>
             </button>
 
             {/* Баланс очков / XP */}
