@@ -2,6 +2,25 @@
   "name": "living-tracker",
   "private": true,
   "version": "0.1.0",
+  "description": "Gamified Cyberpunk Life OS and Floating Desktop HUD built with Tauri 2.0, React 19, TypeScript, and SQLite",
+  "author": "Living Tracker Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/00DaEdRa00/living-tracker.git"
+  },
+  "keywords": [
+    "tauri",
+    "react",
+    "typescript",
+    "cyberpunk",
+    "hud",
+    "gamification",
+    "habits-tracker",
+    "sqlite",
+    "eisenhower-matrix",
+    "pomodoro"
+  ],
   "type": "module",
   "scripts": {
     "dev": "vite",

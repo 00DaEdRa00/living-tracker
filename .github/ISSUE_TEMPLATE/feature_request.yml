@@ -1,0 +1,28 @@
+name: ✨ Предложение новой фичи (Feature Request)
+description: Предложить новую идею, тему, звуковой эффект или плагин
+title: "[Feat]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Есть классная идея для Living Tracker? Расскажите о ней!
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какую проблему решает это предложение?
+      description: Опишите сценарий использования или неудобство в текущей версии.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Описание желаемой функциональности
+      description: Как именно должна работать эта фича?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Рассматриваемые альтернативы
+      description: Пробовали ли другие решения или подходы?
