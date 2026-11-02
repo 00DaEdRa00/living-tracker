@@ -148,15 +148,49 @@ export function formatTimeLeft(dueDateStr: string, now: Date): {
   };
 }
 
+export type DeadlineFilter = 'all' | 'burning' | 'today' | 'week' | 'nodate';
+
+export function matchesDeadlineFilter(
+  task: Task,
+  filter: DeadlineFilter,
+  now: Date
+): boolean {
+  if (filter === 'all') return true;
+  if (filter === 'nodate') return !task.dueDate;
+  if (!task.dueDate) return false;
+
+  const due = new Date(task.dueDate).getTime();
+  const current = now.getTime();
+  const diffHours = (due - current) / (1000 * 60 * 60);
+
+  if (filter === 'burning') {
+    return diffHours < 12; // Просрочено или осталось менее 12 часов
+  }
+
+  if (filter === 'today') {
+    const todayStr = now.toISOString().split('T')[0];
+    const dueStr = new Date(due).toISOString().split('T')[0];
+    return todayStr === dueStr;
+  }
+
+  if (filter === 'week') {
+    return diffHours >= 0 && diffHours <= 7 * 24;
+  }
+
+  return true;
+}
+
 export const TasksSection: React.FC = () => {
   const tasks = useTrackerStore((state) => state.tasks);
   const toggleTask = useTrackerStore((state) => state.toggleTask);
   const addTask = useTrackerStore((state) => state.addTask);
+  const updateTask = useTrackerStore((state) => state.updateTask);
   const deleteTask = useTrackerStore((state) => state.deleteTask);
   const tone = useTrackerStore((state) => state.tone);
 
   const [selectedSphere, setSelectedSphere] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [deadlineFilter, setDeadlineFilter] = useState<DeadlineFilter>('all');
   const [sortMode, setSortMode] = useState<'default' | 'urgency' | 'priority'>('default');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -243,6 +277,17 @@ export const TasksSection: React.FC = () => {
     setIsModalOpen(false);
   };
 
+  const handleSnooze = (taskId: string, hoursToAdd: number) => {
+    playClickSound();
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    const baseDate = task.dueDate ? new Date(task.dueDate) : new Date();
+    const effectiveBase = baseDate.getTime() < Date.now() ? new Date() : baseDate;
+    const newDueDate = new Date(effectiveBase.getTime() + hoursToAdd * 60 * 60 * 1000).toISOString();
+    updateTask(taskId, { dueDate: newDueDate });
+  };
+
   // Фильтрация задач
   const filteredTasks = tasks.filter((task) => {
     const matchesSphere =
@@ -263,7 +308,9 @@ export const TasksSection: React.FC = () => {
       task.title.toLowerCase().includes(query) ||
       Boolean(task.description && task.description.toLowerCase().includes(query));
 
-    return matchesSphere && matchesStatus && matchesSearch;
+    const matchesDeadline = matchesDeadlineFilter(task, deadlineFilter, currentTime);
+
+    return matchesSphere && matchesStatus && matchesSearch && matchesDeadline;
   });
 
   // Сортировка задач
@@ -290,6 +337,12 @@ export const TasksSection: React.FC = () => {
 
   const activeCount = tasks.filter((t) => !t.completed).length;
   const completedCount = tasks.filter((t) => t.completed).length;
+  const burningCount = tasks.filter(
+    (t) => !t.completed && matchesDeadlineFilter(t, 'burning', currentTime)
+  ).length;
+  const todayCount = tasks.filter(
+    (t) => !t.completed && matchesDeadlineFilter(t, 'today', currentTime)
+  ).length;
 
   return (
     <section className="space-y-6">
@@ -474,6 +527,86 @@ export const TasksSection: React.FC = () => {
           <span className="text-[11px] text-slate-400 hidden sm:inline-block">
             Показано: <strong className="text-white">{sortedTasks.length}</strong>
           </span>
+        </div>
+
+        {/* Фильтры дедлайнов и срочности */}
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-surface-border/40 text-xs overflow-x-auto pb-1 sm:pb-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-slate-500 font-bold px-1 flex items-center gap-1">
+              <Clock className="w-3 h-3 text-slate-400" />
+              <span className="hidden xs:inline">Сроки:</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setDeadlineFilter('all');
+              }}
+              className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                deadlineFilter === 'all'
+                  ? 'bg-accent/20 text-accent border border-accent/40 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Все сроки
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setDeadlineFilter('burning');
+              }}
+              className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                deadlineFilter === 'burning'
+                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm'
+                  : 'text-rose-400/80 hover:text-rose-300'
+              }`}
+            >
+              <span>🔥 Горят ({burningCount})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setDeadlineFilter('today');
+              }}
+              className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                deadlineFilter === 'today'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+                  : 'text-amber-400/80 hover:text-amber-300'
+              }`}
+            >
+              ⏰ Сегодня ({todayCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setDeadlineFilter('week');
+              }}
+              className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                deadlineFilter === 'week'
+                  ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              📅 На этой неделе
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setDeadlineFilter('nodate');
+              }}
+              className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                deadlineFilter === 'nodate'
+                  ? 'bg-surface-card text-slate-300 border border-surface-border shadow-sm'
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              Без срока
+            </button>
+          </div>
         </div>
 
         {/* Слот плагинов: task.actions */}
@@ -665,16 +798,39 @@ export const TasksSection: React.FC = () => {
                       </span>
                     )}
 
-                    {task.dueDate && (
-                      <span className="text-[10px] text-slate-400 font-medium">
-                        {new Date(task.dueDate).toLocaleDateString('ru-RU', {
-                          day: 'numeric',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {task.dueDate && (
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {new Date(task.dueDate).toLocaleDateString('ru-RU', {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      )}
+
+                      {!task.completed && (
+                        <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                          <button
+                            type="button"
+                            onClick={() => handleSnooze(task.id, 24)}
+                            title="Перенести дедлайн на +1 день"
+                            className="px-1.5 py-0.5 rounded-md bg-surface hover:bg-slate-800 text-[10px] font-bold text-slate-400 hover:text-accent border border-surface-border transition-colors cursor-pointer"
+                          >
+                            +1д
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSnooze(task.id, 72)}
+                            title="Перенести дедлайн на +3 дня"
+                            className="px-1.5 py-0.5 rounded-md bg-surface hover:bg-slate-800 text-[10px] font-bold text-slate-400 hover:text-accent border border-surface-border transition-colors cursor-pointer"
+                          >
+                            +3д
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
               );

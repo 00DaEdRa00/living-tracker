@@ -379,3 +379,41 @@ export function playStreakFreezeSound(): void {
     console.warn('Audio playStreakFreezeSound error:', err);
   }
 }
+
+/**
+ * 10. playShareSound() — сочный футуристический восходящий перезвон при генерации и копировании шеринг-карточки
+ */
+export function playShareSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const notes = [
+      { freq: 523.25, time: 0.0, dur: 0.14, vol: 0.22 }, // C5
+      { freq: 659.25, time: 0.05, dur: 0.14, vol: 0.24 }, // E5
+      { freq: 783.99, time: 0.1, dur: 0.16, vol: 0.26 }, // G5
+      { freq: 1046.5, time: 0.16, dur: 0.35, vol: 0.3 }, // C6
+    ];
+
+    notes.forEach(({ freq, time, dur, vol }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + time);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.setValueAtTime(vol, now + time);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + time + dur);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + time);
+      osc.stop(now + time + dur + 0.02);
+    });
+  } catch (err) {
+    console.warn('Audio playShareSound error:', err);
+  }
+}

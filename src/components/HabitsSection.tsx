@@ -21,6 +21,7 @@ import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
 import type { Habit } from '../types/tracker';
 import { playHabitCheckSound, playStreakFreezeSound, playClickSound } from '../lib/soundFx';
+import { HabitShareModal } from './HabitShareModal';
 
 export const HABIT_ICON_PRESETS = [
   { icon: '💧', label: 'Водный баланс' },
@@ -71,6 +72,7 @@ export const HabitsSection: React.FC = () => {
   const tone = useTrackerStore((state) => state.tone);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [sharingHabit, setSharingHabit] = useState<Habit | null>(null);
   const [hoveredDay, setHoveredDay] = useState<{
     habitId: string;
     date: string;
@@ -126,12 +128,7 @@ export const HabitsSection: React.FC = () => {
 
   const handleShareHabit = (habit: Habit) => {
     playClickSound();
-    let targetAch = 'first_habit';
-    if (habit.streak >= 30) targetAch = 'streak_30';
-    else if (habit.streak >= 7) targetAch = 'streak_7';
-    else if (habit.streak >= 3) targetAch = 'streak_3';
-    else if (habit.frozenDates && habit.frozenDates.length > 0) targetAch = 'freeze_used';
-    openAchievementModal(targetAch);
+    setSharingHabit(habit);
   };
 
   const handleCreateHabit = (e: React.FormEvent) => {
@@ -447,17 +444,15 @@ export const HabitsSection: React.FC = () => {
                         </span>
                       </button>
 
-                      {/* Кнопка «Поделиться» */}
-                      {(habit.streak >= 3 || isFrozenToday || (habit.bestStreak && habit.bestStreak >= 3)) && (
-                        <button
-                          type="button"
-                          onClick={() => handleShareHabit(habit)}
-                          title="Сгенерировать и скопировать PNG карточку стрика"
-                          className="p-2 rounded-xl bg-surface hover:bg-slate-800 text-slate-300 hover:text-accent border border-surface-border transition-colors cursor-pointer"
-                        >
-                          <Share2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                      {/* Кнопка «Поделиться» (html2canvas) */}
+                      <button
+                        type="button"
+                        onClick={() => handleShareHabit(habit)}
+                        title="Сгенерировать и скопировать PNG карточку стрика"
+                        className="p-2 rounded-xl bg-surface hover:bg-slate-800 text-slate-300 hover:text-accent border border-surface-border transition-colors cursor-pointer"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
 
                     {/* Быстрый чек-ин с тактильной анимацией */}
@@ -614,6 +609,14 @@ export const HabitsSection: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Модальное окно шеринга стрика через html2canvas */}
+      {sharingHabit && (
+        <HabitShareModal
+          habit={sharingHabit}
+          onClose={() => setSharingHabit(null)}
+        />
+      )}
     </section>
   );
 };

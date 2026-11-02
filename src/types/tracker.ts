@@ -132,7 +132,9 @@ export interface TrackerActions {
   // Extended helper actions
   setBudgetLimit: (monthlyLimit: number) => void;
   addHabit: (habit: Omit<Habit, 'id' | 'streak' | 'completedToday' | 'history' | 'createdAt'> & { id?: string; createdAt?: string }) => void;
+  updateHabit: (id: string, updates: Partial<Habit>) => void;
   addTask: (task: Omit<Task, 'id' | 'completed' | 'createdAt'> & { id?: string; createdAt?: string }) => void;
+  updateTask: (id: string, updates: Partial<Task>) => void;
   deleteHabit: (id: string) => void;
   deleteTask: (id: string) => void;
   deleteTransaction: (id: string) => void;

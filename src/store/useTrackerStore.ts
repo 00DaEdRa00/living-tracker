@@ -578,9 +578,21 @@ export const useTrackerStore = create<TrackerStore>()(
           setState((state) => ({ tasks: [...state.tasks, newTask] }));
         },
 
+        updateHabit: (id, updates) => {
+          setState((state) => ({
+            habits: state.habits.map((h) => (h.id === id ? { ...h, ...updates } : h)),
+          }));
+        },
+
         deleteHabit: (id) => {
           setState((state) => ({
             habits: state.habits.filter((h) => h.id !== id),
+          }));
+        },
+
+        updateTask: (id, updates) => {
+          setState((state) => ({
+            tasks: state.tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
           }));
         },
 
