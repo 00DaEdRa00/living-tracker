@@ -12,6 +12,7 @@ import {
   X,
   Sparkles,
   Layers,
+  LayoutGrid,
   ChevronDown,
   Timer,
   Image as ImageIcon,
@@ -192,6 +193,46 @@ export function matchesDeadlineFilter(
   return true;
 }
 
+export function calculateLifeBalanceScore(tasks: Task[]): { score: number; counts: Record<string, number> } {
+  const activeTasks = tasks.filter((t) => !t.completed);
+  const sphereIds = ['Здоровье', 'Работа', 'Финансы', 'Отношения', 'Хобби', 'Учёба'];
+  const counts: Record<string, number> = {};
+  sphereIds.forEach((id) => {
+    counts[id] = 0;
+  });
+
+  activeTasks.forEach((t) => {
+    const cat = t.category || 'Работа';
+    if (counts[cat] !== undefined) {
+      counts[cat]++;
+    } else {
+      counts['Работа']++;
+    }
+  });
+
+  if (activeTasks.length === 0) {
+    return { score: 100, counts };
+  }
+
+  const activeSpheres = sphereIds.filter((s) => counts[s] > 0).length;
+  const score = Math.round((activeSpheres / sphereIds.length) * 100);
+  return { score, counts };
+}
+
+export function classifyEisenhower(task: Task, now: Date): 'q1' | 'q2' | 'q3' | 'q4' {
+  const isHigh = task.priority === 'high';
+  let isUrgent = false;
+  if (task.dueDate) {
+    const diffHours = (new Date(task.dueDate).getTime() - now.getTime()) / (1000 * 60 * 60);
+    isUrgent = diffHours <= 48;
+  }
+
+  if (isHigh && isUrgent) return 'q1'; // Срочно + Важно
+  if (isHigh && !isUrgent) return 'q2'; // Важно + Не срочно
+  if (!isHigh && isUrgent) return 'q3'; // Срочно + Не важно
+  return 'q4'; // Не срочно + Не важно
+}
+
 export const TasksSection: React.FC = () => {
   const tasks = useTrackerStore((state) => state.tasks);
   const toggleTask = useTrackerStore((state) => state.toggleTask);
@@ -209,6 +250,7 @@ export const TasksSection: React.FC = () => {
   const [deadlineFilter, setDeadlineFilter] = useState<DeadlineFilter>('all');
   const [priorityFilter, setPriorityFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const [sortMode, setSortMode] = useState<'default' | 'urgency' | 'priority' | 'newest' | 'alphabetical'>('default');
+  const [viewMode, setViewMode] = useState<'grid' | 'matrix'>('grid');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -472,6 +514,48 @@ export const TasksSection: React.FC = () => {
         </button>
       </div>
 
+      {/* Сводка баланса сфер жизни (Life Balance Score) */}
+      {(() => {
+        const balance = calculateLifeBalanceScore(tasks);
+        return (
+          <div className="p-4 rounded-2xl bg-surface-card border border-surface-border text-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-accent/15 border border-accent/30 flex items-center justify-center text-accent shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-white text-sm">Баланс сфер жизни:</span>
+                  <span className="px-2 py-0.5 rounded-full font-black text-xs bg-accent/20 text-accent border border-accent/30">
+                    {balance.score}% гармония
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Распределение активных задач по 6 ключевым направлениям
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+              {LIFE_SPHERES.filter((s) => s.id !== 'all').map((sphere) => {
+                const count = balance.counts[sphere.id] || 0;
+                return (
+                  <div
+                    key={sphere.id}
+                    title={`${sphere.label}: ${count} активных задач`}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-surface border border-surface-border text-[11px]"
+                  >
+                    <span>{sphere.icon}</span>
+                    <span className="text-slate-300 font-semibold">{sphere.label}:</span>
+                    <strong className={count > 0 ? 'text-accent' : 'text-slate-500'}>{count}</strong>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Панель фильтров: Сферы жизни и статусы */}
       <div className="space-y-3">
         {/* Строка поиска задач */}
@@ -653,6 +737,40 @@ export const TasksSection: React.FC = () => {
             </button>
           </div>
 
+          {/* Режим отображения: Сетка / Матрица 2x2 */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-surface border border-surface-border text-xs">
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setViewMode('grid');
+              }}
+              className={`flex items-center gap-1 px-2.5 py-0.5 rounded-lg font-bold transition-all cursor-pointer ${
+                viewMode === 'grid'
+                  ? 'bg-accent/20 text-accent shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Сетка</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setViewMode('matrix');
+              }}
+              className={`flex items-center gap-1 px-2.5 py-0.5 rounded-lg font-bold transition-all cursor-pointer ${
+                viewMode === 'matrix'
+                  ? 'bg-purple-500/20 text-purple-300 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Матрица 2x2</span>
+            </button>
+          </div>
+
           <span className="text-[11px] text-slate-400 hidden sm:inline-block">
             Показано: <strong className="text-white">{sortedTasks.length}</strong>
           </span>
@@ -801,6 +919,146 @@ export const TasksSection: React.FC = () => {
           >
             + Добавить задачу
           </button>
+        </div>
+      ) : viewMode === 'matrix' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[
+            {
+              id: 'q1' as const,
+              title: 'Срочно и Важно 🔥',
+              subtitle: 'Кризисы, дедлайны до 48ч, топ-приоритет',
+              border: 'border-rose-500/40 bg-gradient-to-br from-rose-950/20 via-surface-card to-surface-card',
+              badge: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+              tasks: sortedTasks.filter((t) => classifyEisenhower(t, currentTime) === 'q1'),
+            },
+            {
+              id: 'q2' as const,
+              title: 'Важно, не срочно 💎',
+              subtitle: 'Стратегические цели, рост, здоровье',
+              border: 'border-sky-500/40 bg-gradient-to-br from-sky-950/20 via-surface-card to-surface-card',
+              badge: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
+              tasks: sortedTasks.filter((t) => classifyEisenhower(t, currentTime) === 'q2'),
+            },
+            {
+              id: 'q3' as const,
+              title: 'Срочно, не важно ⚡',
+              subtitle: 'Рутина, звонки, мелкие поручения',
+              border: 'border-amber-500/40 bg-gradient-to-br from-amber-950/20 via-surface-card to-surface-card',
+              badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+              tasks: sortedTasks.filter((t) => classifyEisenhower(t, currentTime) === 'q3'),
+            },
+            {
+              id: 'q4' as const,
+              title: 'Не срочно и не важно ☕',
+              subtitle: 'Отдых, идеи на потом, низкий приоритет',
+              border: 'border-slate-700/60 bg-surface-card/60',
+              badge: 'bg-slate-700/40 text-slate-300 border-slate-600',
+              tasks: sortedTasks.filter((t) => classifyEisenhower(t, currentTime) === 'q4'),
+            },
+          ].map((quadrant) => (
+            <div
+              key={quadrant.id}
+              className={`p-4 rounded-3xl border ${quadrant.border} shadow-lg flex flex-col justify-between min-h-[260px]`}
+            >
+              <div>
+                <div className="flex items-center justify-between pb-3 border-b border-surface-border/50 mb-3">
+                  <div>
+                    <h3 className="text-sm font-extrabold text-white flex items-center gap-1.5">
+                      {quadrant.title}
+                    </h3>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{quadrant.subtitle}</p>
+                  </div>
+                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${quadrant.badge}`}>
+                    {quadrant.tasks.length}
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {quadrant.tasks.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-slate-500 italic">
+                      Нет задач в этом квадранте
+                    </div>
+                  ) : (
+                    quadrant.tasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className={`p-2.5 rounded-2xl border transition-all flex items-center justify-between gap-2 ${
+                          task.completed
+                            ? 'bg-surface/30 border-surface-border/30 opacity-60'
+                            : 'bg-surface/80 border-surface-border hover:border-slate-500 shadow-sm'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => handleToggle(task.id, task.completed)}
+                            className="cursor-pointer text-slate-400 hover:text-accent transition-colors shrink-0"
+                          >
+                            {task.completed ? (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                            ) : (
+                              <Circle className="w-4 h-4" />
+                            )}
+                          </button>
+                          <div className="truncate">
+                            <span
+                              className={`text-xs font-semibold truncate block ${
+                                task.completed ? 'line-through text-slate-500' : 'text-white'
+                              }`}
+                            >
+                              {task.title}
+                            </span>
+                            <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                              <span>{task.category || 'Работа'}</span>
+                              {task.dueDate && (
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-2.5 h-2.5" />
+                                  {new Date(task.dueDate).toLocaleDateString('ru-RU')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditModal(task)}
+                            className="p-1 text-slate-400 hover:text-sky-300 rounded-lg hover:bg-surface cursor-pointer"
+                            title="Редактировать"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              deleteTask(task.id);
+                              playTrashSound();
+                            }}
+                            className="p-1 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-surface cursor-pointer"
+                            title="Удалить"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setFormPriority(quadrant.id === 'q1' || quadrant.id === 'q2' ? 'high' : 'low');
+                  handleOpenModal();
+                }}
+                className="mt-3 w-full py-1.5 rounded-xl bg-surface/50 hover:bg-surface border border-surface-border text-slate-400 hover:text-white text-[11px] font-semibold transition-colors cursor-pointer text-center"
+              >
+                + Добавить в этот квадрант
+              </button>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -589,3 +589,68 @@ export function playSnoozeSound(): void {
     console.warn('Audio playSnoozeSound error:', err);
   }
 }
+
+/**
+ * 16. playThemeSwitchSound() — футуристический скользящий синт-перелив при смене темы оформления
+ */
+export function playThemeSwitchSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(640, now + 0.07);
+    osc.frequency.exponentialRampToValueAtTime(480, now + 0.16);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.18, now + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.19);
+  } catch (err) {
+    console.warn('Audio playThemeSwitchSound error:', err);
+  }
+}
+
+/**
+ * 17. playShieldSound() — кристаллический аккорд защиты (C6, E6, G6) при активации щита стрика / заморозке всех привычек
+ */
+export function playShieldSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const freqs = [1046.5, 1318.51, 1567.98]; // C6, E6, G6
+
+    freqs.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.03);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.14, now + idx * 0.03 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.03 + 0.35);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + idx * 0.03);
+      osc.stop(now + idx * 0.03 + 0.36);
+    });
+  } catch (err) {
+    console.warn('Audio playShieldSound error:', err);
+  }
+}

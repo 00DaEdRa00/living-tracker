@@ -71,6 +71,60 @@ export async function getDesktopInfo(): Promise<DesktopInfo | null> {
   }
 }
 
+export interface DatabaseStats {
+  status: string;
+  storage: string;
+  db: string;
+  version: number;
+}
+
+export async function getDatabaseStats(): Promise<DatabaseStats | null> {
+  if (!isTauri()) {
+    return {
+      status: 'browser_fallback',
+      storage: 'localStorage',
+      db: 'in-memory/web',
+      version: 4,
+    };
+  }
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    return await invoke<DatabaseStats>('get_database_stats');
+  } catch (err) {
+    console.warn('[TauriBridge] Failed to get database stats:', err);
+    return null;
+  }
+}
+
+/**
+ * Register global shortcut to toggle HUD window
+ */
+export async function registerGlobalShortcut(
+  shortcut = 'CommandOrControl+Shift+Space',
+  onTrigger?: () => void
+): Promise<boolean> {
+  if (!isTauri()) {
+    console.log('[TauriBridge] Global shortcut simulated in browser:', shortcut);
+    return true;
+  }
+  try {
+    const { register } = await import('@tauri-apps/plugin-global-shortcut');
+    await register(shortcut, (event) => {
+      if (event.state === 'Pressed') {
+        if (onTrigger) {
+          onTrigger();
+        } else {
+          toggleHudWindow();
+        }
+      }
+    });
+    return true;
+  } catch (err) {
+    console.warn('[TauriBridge] Failed to register global shortcut:', err);
+    return false;
+  }
+}
+
 /**
  * Start native dragging on Tauri frameless windows
  */

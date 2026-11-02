@@ -4,7 +4,7 @@
 
 export type ToneMode = 'neutral' | 'ironic' | 'sassy';
 
-export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald' | 'synthwave' | 'nord';
+export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald' | 'synthwave' | 'nord' | 'dracula';
 
 export type TransactionType = 'expense' | 'income';
 
@@ -126,6 +126,7 @@ export interface TrackerActions {
   addTransaction: (transaction: Omit<Transaction, 'id' | 'date'> & { id?: string; date?: string }) => void;
   toggleHabit: (id: string) => void;
   freezeHabit: (id: string) => boolean;
+  freezeAllHabitsToday: () => number;
   toggleTask: (id: string) => void;
   clickCat: () => void;
   clickPrice: () => void;

@@ -56,6 +56,16 @@ fn get_desktop_info() -> Result<serde_json::Value, String> {
     }))
 }
 
+#[tauri::command]
+fn get_database_stats() -> Result<serde_json::Value, String> {
+    Ok(serde_json::json!({
+        "status": "connected",
+        "storage": "sqlite",
+        "db": "living_tracker.db",
+        "version": 4
+    }))
+}
+
 pub fn run() {
     let migrations = vec![Migration {
         version: 1,
@@ -140,7 +150,8 @@ pub fn run() {
             toggle_hud_window,
             show_main_window,
             set_hud_always_on_top,
-            get_desktop_info
+            get_desktop_info,
+            get_database_stats
         ])
         .setup(|app| {
             // Создаем меню для системного трея

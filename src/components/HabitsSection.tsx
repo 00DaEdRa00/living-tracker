@@ -26,6 +26,7 @@ import {
   playHabitCheckSound,
   playStreakFreezeSound,
   playStreakMilestoneSound,
+  playShieldSound,
   playClickSound,
   playTrashSound,
   playEditSound,
@@ -59,6 +60,23 @@ export function getStreakBadge(streak: number): { label: string; badgeClass: str
     };
   }
   return null;
+}
+
+export function getNextMilestone(streak: number): { target: number; remaining: number } {
+  if (streak < 7) return { target: 7, remaining: 7 - streak };
+  if (streak < 14) return { target: 14, remaining: 14 - streak };
+  if (streak < 21) return { target: 21, remaining: 21 - streak };
+  if (streak < 30) return { target: 30, remaining: 30 - streak };
+  if (streak < 50) return { target: 50, remaining: 50 - streak };
+  return { target: 100, remaining: Math.max(0, 100 - streak) };
+}
+
+export function get30DayRate(history: string[] = []): { count: number; ratePercent: number } {
+  const now = new Date();
+  const past30Iso = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const count = history.filter((d) => d >= past30Iso).length;
+  const ratePercent = Math.min(100, Math.round((count / 30) * 100));
+  return { count, ratePercent };
 }
 
 export const HABIT_ICON_PRESETS = [
@@ -113,6 +131,7 @@ export const HabitsSection: React.FC = () => {
   const habits = useTrackerStore((state) => state.habits);
   const toggleHabit = useTrackerStore((state) => state.toggleHabit);
   const freezeHabit = useTrackerStore((state) => state.freezeHabit);
+  const freezeAllHabitsToday = useTrackerStore((state) => state.freezeAllHabitsToday);
   const addHabit = useTrackerStore((state) => state.addHabit);
   const updateHabit = useTrackerStore((state) => state.updateHabit);
   const deleteHabit = useTrackerStore((state) => state.deleteHabit);
@@ -231,6 +250,29 @@ export const HabitsSection: React.FC = () => {
     }
   };
 
+  const handleFreezeAllToday = () => {
+    const frozenCount = freezeAllHabitsToday();
+    if (frozenCount > 0) {
+      playShieldSound();
+      sendDesktopNotification(
+        '🛡️ Щит стриков активирован',
+        `Заморожено привычек на сегодня: ${frozenCount}. Стрики надежно защищены от сгорания!`
+      );
+      try {
+        confetti({
+          particleCount: 85,
+          spread: 75,
+          origin: { y: 0.6 },
+          colors: ['#38bdf8', '#7dd3fc', '#bae6fd', '#e0f2fe', '#ffffff'],
+        });
+      } catch {
+        // no-op
+      }
+    } else {
+      playClickSound();
+    }
+  };
+
   const handleShareHabit = (habit: Habit) => {
     playClickSound();
     setSharingHabit(habit);
@@ -318,7 +360,7 @@ export const HabitsSection: React.FC = () => {
       </div>
 
       {/* Информационная плашка о механике Streak Freeze */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-950/30 via-surface-card to-surface-card border border-sky-500/30 flex items-center justify-between gap-4 text-xs">
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-950/30 via-surface-card to-surface-card border border-sky-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-400 shrink-0">
             <Snowflake className="w-4 h-4" />
@@ -331,9 +373,20 @@ export const HabitsSection: React.FC = () => {
             </span>
           </div>
         </div>
-        <div className="hidden md:flex items-center gap-2 shrink-0 text-slate-400 font-medium">
-          <Trophy className="w-4 h-4 text-amber-400" />
-          <span>Лучший рекорд: <strong className="text-white">{bestOverallStreak} дн.</strong></span>
+        <div className="flex items-center gap-2.5 shrink-0 w-full md:w-auto justify-between md:justify-end">
+          <button
+            type="button"
+            onClick={handleFreezeAllToday}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 text-xs font-bold transition-all cursor-pointer shadow-sm shadow-sky-950/40"
+            title="Заморозить все незакрытые привычки на сегодня"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Щит: Заморозить всё на сегодня</span>
+          </button>
+          <div className="hidden lg:flex items-center gap-1.5 text-slate-400 font-medium">
+            <Trophy className="w-4 h-4 text-amber-400" />
+            <span>Рекорд: <strong className="text-white">{bestOverallStreak} дн.</strong></span>
+          </div>
         </div>
       </div>
 
@@ -639,6 +692,34 @@ export const HabitsSection: React.FC = () => {
                         </div>
                       </div>
                     </div>
+
+                    {/* Рубежи и 30-дневная стабильность */}
+                    {(() => {
+                      const milestone = getNextMilestone(habit.streak);
+                      const rate = get30DayRate(habit.history);
+                      const milestoneProgress = Math.min(100, Math.round(((milestone.target - milestone.remaining) / milestone.target) * 100));
+
+                      return (
+                        <div className="p-2.5 rounded-2xl bg-surface/50 border border-surface-border/60 mb-4 flex items-center justify-between text-xs gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1">
+                              <span>Цель: <strong className="text-amber-300">{milestone.target} дн.</strong> (осталось {milestone.remaining})</span>
+                              <span className="font-bold text-slate-300">{milestoneProgress}%</span>
+                            </div>
+                            <div className="h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-gradient-to-r from-amber-500 to-emerald-400 transition-all duration-300"
+                                style={{ width: `${milestoneProgress}%` }}
+                              />
+                            </div>
+                          </div>
+                          <div className="shrink-0 pl-2.5 border-l border-surface-border text-right">
+                            <span className="text-[9px] uppercase font-bold text-slate-400 block">30 дней</span>
+                            <span className="text-xs font-black text-emerald-400">{rate.ratePercent}%</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Тепловая карта стабильности (Heatmap) */}
                     <div className="p-3.5 rounded-2xl bg-surface/60 border border-surface-border mb-4">

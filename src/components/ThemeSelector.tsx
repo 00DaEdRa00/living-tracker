@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useTrackerStore } from '../store/useTrackerStore';
 import type { AppTheme } from '../types/tracker';
-import { playClickSound } from '../lib/soundFx';
+import { playThemeSwitchSound } from '../lib/soundFx';
 
 interface ThemeOption {
   id: AppTheme;
@@ -54,6 +54,14 @@ const THEME_OPTIONS: ThemeOption[] = [
     accentColor: '#38bdf8',
     desc: 'Arctic Frost & Glacier Cyan (#0f172a)',
   },
+  {
+    id: 'dracula',
+    label: 'Dracula',
+    shortLabel: 'Drac',
+    icon: '🧛',
+    accentColor: '#bd93f9',
+    desc: 'Vampire Violet & Cyber Green (#1a1a24)',
+  },
 ];
 
 export const ThemeSelector: React.FC = () => {
@@ -75,7 +83,7 @@ export const ThemeSelector: React.FC = () => {
             title={opt.desc}
             onClick={() => {
               setTheme(opt.id);
-              playClickSound();
+              playThemeSwitchSound();
             }}
             className={`relative z-10 flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
               isActive

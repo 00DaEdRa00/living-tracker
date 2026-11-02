@@ -53,6 +53,7 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
   const catClicks = useTrackerStore((state) => state.catClicks);
   const toggleHabit = useTrackerStore((state) => state.toggleHabit);
   const freezeHabit = useTrackerStore((state) => state.freezeHabit);
+  const freezeAllHabitsToday = useTrackerStore((state) => state.freezeAllHabitsToday);
   const toggleTask = useTrackerStore((state) => state.toggleTask);
   const addTask = useTrackerStore((state) => state.addTask);
   const clickCat = useTrackerStore((state) => state.clickCat);
@@ -384,6 +385,29 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
 
         {activeTab === 'habits' && (
           <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => {
+                const count = freezeAllHabitsToday();
+                if (count > 0) {
+                  playStreakFreezeSound();
+                  try {
+                    confetti({
+                      particleCount: 40,
+                      spread: 50,
+                      origin: { y: 0.75 },
+                      colors: ['#38bdf8', '#0284c7', '#e0f2fe'],
+                    });
+                  } catch {
+                    // safe
+                  }
+                }
+              }}
+              className="w-full py-1.5 px-3 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <Snowflake className="w-3.5 h-3.5" />
+              <span>Заморозить все на сегодня</span>
+            </button>
             {habits.map((h) => {
               const todayStr = new Date().toISOString().split('T')[0];
               const isFrozen = (h.frozenDates || []).includes(todayStr);

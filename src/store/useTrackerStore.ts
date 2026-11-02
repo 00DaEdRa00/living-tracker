@@ -444,6 +444,40 @@ export const useTrackerStore = create<TrackerStore>()(
           return true;
         },
 
+        freezeAllHabitsToday: () => {
+          const state = getState();
+          const today = new Date().toISOString().split('T')[0];
+          const currentMonth = today.slice(0, 7);
+          let frozenCount = 0;
+
+          const updatedHabits = state.habits.map((h) => {
+            if (h.completedToday) return h;
+            const frozenDates = h.frozenDates || [];
+            if (frozenDates.includes(today)) return h;
+
+            const freezesThisMonth = frozenDates.filter((d) => d.startsWith(currentMonth)).length;
+            if (freezesThisMonth >= 2) return h;
+
+            frozenCount++;
+            return {
+              ...h,
+              frozenDates: [...frozenDates, today],
+            };
+          });
+
+          if (frozenCount > 0) {
+            setState({ habits: updatedHabits });
+            const event: AppEvent = {
+              type: 'HABIT_FROZEN',
+              payload: { habitId: 'all', date: today },
+            };
+            eventBus.emit(event);
+            checkAchievements(event, getState(), setState);
+          }
+
+          return frozenCount;
+        },
+
         toggleTask: (id) => {
           const state = getState();
           const task = state.tasks.find((t) => t.id === id);

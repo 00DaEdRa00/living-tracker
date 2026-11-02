@@ -53,6 +53,16 @@
   --color-accent-glow: 14 165 233;   /* #0ea5e9 */
 }
 
+[data-theme='dracula'],
+.theme-dracula {
+  --color-bg-app: 26 26 36;          /* #1a1a24 Vampire Dark */
+  --color-bg-surface: 40 42 54;      /* #282a36 Dracula Slate */
+  --color-bg-card: 52 55 70;         /* #343746 */
+  --color-border-surface: 98 114 164;/* #6272a4 */
+  --color-accent: 189 147 249;       /* #bd93f9 Dracula Violet */
+  --color-accent-glow: 80 250 123;   /* #50fa7b Cyber Green */
+}
+
 @layer base {
   html,
   body {
