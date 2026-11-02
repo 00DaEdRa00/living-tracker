@@ -62,7 +62,7 @@ fn get_database_stats() -> Result<serde_json::Value, String> {
         "status": "connected",
         "storage": "sqlite",
         "db": "living_tracker.db",
-        "version": 10
+        "version": 12
     }))
 }
 
@@ -73,13 +73,13 @@ fn get_system_metrics() -> Result<serde_json::Value, String> {
         "memory_mb": 42.5,
         "hud_active": true,
         "engine": "tauri-2.0-rust",
-        "sqlite_version": 10
+        "sqlite_version": 12
     }))
 }
 
 #[tauri::command]
 fn get_sqlite_version() -> Result<u32, String> {
-    Ok(10)
+    Ok(12)
 }
 
 #[tauri::command]
@@ -242,6 +242,37 @@ pub fn run() {
                 focus_minutes INTEGER NOT NULL DEFAULT 0,
                 recap_json TEXT NOT NULL DEFAULT '{}',
                 created_at TEXT NOT NULL
+            );
+        ",
+        kind: MigrationKind::Up,
+    },
+    Migration {
+        version: 11,
+        description: "add_habit_time_of_day_and_task_kanban_status",
+        sql: "
+            ALTER TABLE habits ADD COLUMN time_of_day TEXT DEFAULT 'anytime';
+            ALTER TABLE tasks ADD COLUMN kanban_status TEXT DEFAULT 'todo';
+            CREATE INDEX IF NOT EXISTS idx_tasks_kanban ON tasks(kanban_status);
+            CREATE INDEX IF NOT EXISTS idx_habits_time_of_day ON habits(time_of_day);
+        ",
+        kind: MigrationKind::Up,
+    },
+    Migration {
+        version: 12,
+        description: "add_task_dependency_eisenhower_and_yearly_analytics",
+        sql: "
+            ALTER TABLE tasks ADD COLUMN depends_on_task_id TEXT;
+            ALTER TABLE tasks ADD COLUMN eisenhower_quadrant TEXT DEFAULT 'q2_not_urgent_important';
+            CREATE INDEX IF NOT EXISTS idx_tasks_quadrant ON tasks(eisenhower_quadrant);
+            CREATE INDEX IF NOT EXISTS idx_tasks_depends_on ON tasks(depends_on_task_id);
+            CREATE TABLE IF NOT EXISTS yearly_analytics (
+                year TEXT PRIMARY KEY,
+                total_checkins INTEGER NOT NULL DEFAULT 0,
+                active_days INTEGER NOT NULL DEFAULT 0,
+                best_streak INTEGER NOT NULL DEFAULT 0,
+                completion_rate REAL NOT NULL DEFAULT 0.0,
+                analytics_json TEXT NOT NULL DEFAULT '{}',
+                updated_at TEXT NOT NULL
             );
         ",
         kind: MigrationKind::Up,

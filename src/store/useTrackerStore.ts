@@ -778,6 +778,22 @@ export const useTrackerStore = create<TrackerStore>()(
           }));
         },
 
+        setTaskQuadrant: (taskId, quadrant) => {
+          setState((state) => ({
+            tasks: state.tasks.map((t) =>
+              t.id === taskId ? { ...t, eisenhowerQuadrant: quadrant } : t
+            ),
+          }));
+        },
+
+        setTaskDependency: (taskId, dependsOnTaskId) => {
+          setState((state) => ({
+            tasks: state.tasks.map((t) =>
+              t.id === taskId ? { ...t, dependsOnTaskId: dependsOnTaskId || undefined } : t
+            ),
+          }));
+        },
+
         toggleTaskPin: (taskId) => {
           setState((state) => ({
             tasks: state.tasks.map((t) =>

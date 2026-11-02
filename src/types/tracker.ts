@@ -4,7 +4,7 @@
 
 export type ToneMode = 'neutral' | 'ironic' | 'sassy';
 
-export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald' | 'synthwave' | 'nord' | 'dracula' | 'tokyo' | 'crimson' | 'matrix' | 'sunset' | 'aurora' | 'solarpunk' | 'vaporwave';
+export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald' | 'synthwave' | 'nord' | 'dracula' | 'tokyo' | 'crimson' | 'matrix' | 'sunset' | 'aurora' | 'solarpunk' | 'vaporwave' | 'nebula' | 'coffee';
 
 export type TransactionType = 'expense' | 'income';
 
@@ -44,6 +44,7 @@ export interface Subtask {
 
 export type TaskRecurrence = 'none' | 'daily' | 'weekly' | 'monthly';
 export type TaskKanbanStatus = 'todo' | 'in_progress' | 'done';
+export type EisenhowerQuadrant = 'q1_urgent_important' | 'q2_not_urgent_important' | 'q3_urgent_not_important' | 'q4_not_urgent_not_important';
 
 export interface Task {
   id: string;
@@ -60,6 +61,8 @@ export interface Task {
   checklist?: Subtask[];
   recurrence?: TaskRecurrence;
   kanbanStatus?: TaskKanbanStatus;
+  eisenhowerQuadrant?: EisenhowerQuadrant;
+  dependsOnTaskId?: string;
   estimatedMinutes?: number;
   spentMinutes?: number;
   isPinned?: boolean;
@@ -170,6 +173,8 @@ export interface TrackerActions {
   addTask: (task: Omit<Task, 'id' | 'completed' | 'createdAt'> & { id?: string; createdAt?: string }) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   updateTaskKanbanStatus: (taskId: string, status: TaskKanbanStatus) => void;
+  setTaskQuadrant: (taskId: string, quadrant: EisenhowerQuadrant) => void;
+  setTaskDependency: (taskId: string, dependsOnTaskId?: string) => void;
   toggleTaskPin: (taskId: string) => void;
   bulkCompleteTasks: (taskIds: string[]) => void;
   bulkRescheduleTasks: (taskIds: string[], daysToAdd: number) => void;

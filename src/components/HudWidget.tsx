@@ -92,6 +92,9 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
       'sunset',
       'aurora',
       'solarpunk',
+      'vaporwave',
+      'nebula',
+      'coffee',
     ];
     const currentIndex = themes.indexOf(theme);
     const nextIndex = (currentIndex + 1) % themes.length;

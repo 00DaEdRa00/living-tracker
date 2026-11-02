@@ -46,6 +46,7 @@ import {
   playBulkActionSound,
   playFocusLogSound,
   playKanbanMoveSound,
+  playEisenhowerMoveSound,
 } from '../lib/soundFx';
 import { sendDesktopNotification } from '../lib/tauriBridge';
 import { TaskShareModal } from './TaskShareModal';
@@ -234,6 +235,11 @@ export function calculateLifeBalanceScore(tasks: Task[]): { score: number; count
 }
 
 export function classifyEisenhower(task: Task, now: Date): 'q1' | 'q2' | 'q3' | 'q4' {
+  if (task.eisenhowerQuadrant === 'q1_urgent_important') return 'q1';
+  if (task.eisenhowerQuadrant === 'q2_not_urgent_important') return 'q2';
+  if (task.eisenhowerQuadrant === 'q3_urgent_not_important') return 'q3';
+  if (task.eisenhowerQuadrant === 'q4_not_urgent_not_important') return 'q4';
+
   const isHigh = task.priority === 'high';
   let isUrgent = false;
   if (task.dueDate) {
@@ -254,6 +260,8 @@ export const TasksSection: React.FC = () => {
   const addTask = useTrackerStore((state) => state.addTask);
   const updateTask = useTrackerStore((state) => state.updateTask);
   const updateTaskKanbanStatus = useTrackerStore((state) => state.updateTaskKanbanStatus);
+  const setTaskQuadrant = useTrackerStore((state) => state.setTaskQuadrant);
+  const setTaskDependency = useTrackerStore((state) => state.setTaskDependency);
   const toggleTaskPin = useTrackerStore((state) => state.toggleTaskPin);
   const deleteTask = useTrackerStore((state) => state.deleteTask);
   const clearCompletedTasks = useTrackerStore((state) => state.clearCompletedTasks);
@@ -403,6 +411,19 @@ export const TasksSection: React.FC = () => {
   const handleToggle = (id: string, completed: boolean) => {
     if (!completed) {
       const target = tasks.find((t) => t.id === id);
+      if (target?.dependsOnTaskId) {
+        const blocker = tasks.find((t) => t.id === target.dependsOnTaskId);
+        if (blocker && !blocker.completed) {
+          if (
+            typeof window !== 'undefined' &&
+            !window.confirm(
+              `⚠️ Внимание: задача заблокирована предварительным шагом "${blocker.title}". Всё равно отметить выполненной?`
+            )
+          ) {
+            return;
+          }
+        }
+      }
       playTaskCompleteSound();
       sendDesktopNotification(
         '✅ Задача выполнена!',
@@ -1176,13 +1197,32 @@ export const TasksSection: React.FC = () => {
                             )}
                           </button>
                           <div className="truncate">
-                            <span
-                              className={`text-xs font-semibold truncate block ${
-                                task.completed ? 'line-through text-slate-500' : 'text-white'
-                              }`}
-                            >
-                              {task.title}
-                            </span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span
+                                className={`text-xs font-semibold truncate block ${
+                                  task.completed ? 'line-through text-slate-500' : 'text-white'
+                                }`}
+                              >
+                                {task.title}
+                              </span>
+                              {task.dependsOnTaskId && (() => {
+                                const blocker = tasks.find((t) => t.id === task.dependsOnTaskId);
+                                if (!blocker) return null;
+                                return (
+                                  <span
+                                    className={`inline-flex items-center gap-1 text-[9px] font-mono px-1.5 py-0.2 rounded-full border ${
+                                      blocker.completed
+                                        ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                                        : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                                    }`}
+                                    title={blocker.completed ? `Разблокировано: "${blocker.title}"` : `Ждёт выполнения: "${blocker.title}"`}
+                                  >
+                                    <span>{blocker.completed ? '🔓' : '🔒'}</span>
+                                    <span className="truncate max-w-[80px]">{blocker.title}</span>
+                                  </span>
+                                );
+                              })()}
+                            </div>
                             <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
                               <span>{task.category || 'Работа'}</span>
                               {task.dueDate && (
@@ -1196,6 +1236,37 @@ export const TasksSection: React.FC = () => {
                         </div>
 
                         <div className="flex items-center gap-1 shrink-0">
+                          {/* Перемещение между квадрантами Эйзенхауэра */}
+                          <div className="flex items-center gap-0.5 mr-1 bg-black/30 p-0.5 rounded-lg border border-white/5">
+                            {(['q1', 'q2', 'q3', 'q4'] as const).map((qId) => {
+                              const isCurrent = quadrant.id === qId;
+                              const qMap = {
+                                q1: 'q1_urgent_important' as const,
+                                q2: 'q2_not_urgent_important' as const,
+                                q3: 'q3_urgent_not_important' as const,
+                                q4: 'q4_not_urgent_not_important' as const,
+                              };
+                              return (
+                                <button
+                                  key={qId}
+                                  type="button"
+                                  disabled={isCurrent}
+                                  onClick={() => {
+                                    setTaskQuadrant(task.id, qMap[qId]);
+                                    playEisenhowerMoveSound();
+                                  }}
+                                  className={`text-[9px] font-mono px-1 py-0.5 rounded transition-colors ${
+                                    isCurrent
+                                      ? 'bg-accent/30 text-accent font-bold cursor-default'
+                                      : 'text-slate-500 hover:text-white hover:bg-white/10 cursor-pointer'
+                                  }`}
+                                  title={`Переместить в ${qId.toUpperCase()}`}
+                                >
+                                  {qId.toUpperCase()}
+                                </button>
+                              );
+                            })}
+                          </div>
                           <button
                             type="button"
                             onClick={() => handleOpenEditModal(task)}

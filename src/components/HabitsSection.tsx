@@ -40,6 +40,7 @@ import { sendDesktopNotification } from '../lib/tauriBridge';
 import { HabitShareModal } from './HabitShareModal';
 import { HabitMatrixShareModal } from './HabitMatrixShareModal';
 import { StreakCertificateModal } from './StreakCertificateModal';
+import { YearlyContributionShareModal } from './YearlyContributionShareModal';
 
 export function getStreakBadge(streak: number): { label: string; badgeClass: string } | null {
   if (streak >= 30) {
@@ -161,7 +162,8 @@ export const HabitsSection: React.FC = () => {
   const [sharingHabit, setSharingHabit] = useState<Habit | null>(null);
   const [certHabit, setCertHabit] = useState<Habit | null>(null);
   const [isMatrixShareOpen, setIsMatrixShareOpen] = useState(false);
-  const [heatmapDaysCount, setHeatmapDaysCount] = useState<28 | 56 | 84 | 112 | 140 | 168>(28);
+  const [isYearlyShareOpen, setIsYearlyShareOpen] = useState(false);
+  const [heatmapDaysCount, setHeatmapDaysCount] = useState<28 | 56 | 84 | 112 | 140 | 168 | 364>(28);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed' | 'frozen' | 'archived'>('all');
@@ -401,11 +403,24 @@ export const HabitsSection: React.FC = () => {
               playClickSound();
               setIsMatrixShareOpen(true);
             }}
-            className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-surface hover:bg-slate-800 text-slate-200 hover:text-amber-400 font-bold text-xs border border-surface-border transition-all cursor-pointer shadow-md"
+            className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl bg-surface hover:bg-slate-800 text-slate-200 hover:text-amber-400 font-bold text-xs border border-surface-border transition-all cursor-pointer shadow-md"
             title="Поделиться матрицей привычек и дисциплины (html2canvas)"
           >
             <Share2 className="w-3.5 h-3.5" />
             <span>Матрица</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              playClickSound();
+              setIsYearlyShareOpen(true);
+            }}
+            className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl bg-surface hover:bg-slate-800 text-slate-200 hover:text-emerald-400 font-bold text-xs border border-surface-border transition-all cursor-pointer shadow-md"
+            title="Годовая карта активности (365 дней / 52 недели) в PNG (html2canvas)"
+          >
+            <Trophy className="w-3.5 h-3.5 text-amber-400" />
+            <span>Год 365д</span>
           </button>
 
           <button
@@ -883,7 +898,9 @@ export const HabitsSection: React.FC = () => {
                                 ? '16 недель (Квартал)'
                                 : heatmapDaysCount === 140
                                 ? '20 недель'
-                                : '24 недели (Полгода)'}
+                                : heatmapDaysCount === 168
+                                ? '24 недели (Полгода)'
+                                : '52 недели (Год)'}
                               )
                             </span>
                           </span>
@@ -902,6 +919,8 @@ export const HabitsSection: React.FC = () => {
                                   ? 140
                                   : heatmapDaysCount === 140
                                   ? 168
+                                  : heatmapDaysCount === 168
+                                  ? 364
                                   : 28
                               );
                             }}
@@ -917,6 +936,8 @@ export const HabitsSection: React.FC = () => {
                               ? '20 нед'
                               : heatmapDaysCount === 140
                               ? '24 нед'
+                              : heatmapDaysCount === 168
+                              ? '52 нед (Год)'
                               : '4 нед'}
                           </button>
                         </div>
@@ -1255,6 +1276,12 @@ export const HabitsSection: React.FC = () => {
       <HabitMatrixShareModal
         isOpen={isMatrixShareOpen}
         onClose={() => setIsMatrixShareOpen(false)}
+      />
+
+      {/* Модальное окно годовой карты активности (html2canvas 365 дней) */}
+      <YearlyContributionShareModal
+        isOpen={isYearlyShareOpen}
+        onClose={() => setIsYearlyShareOpen(false)}
       />
 
       {/* Модальное окно официального сертификата мастера стриков (html2canvas) */}

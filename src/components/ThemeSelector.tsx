@@ -118,6 +118,22 @@ const THEME_OPTIONS: ThemeOption[] = [
     accentColor: '#ff71ce',
     desc: '80s Neon Pink & Synthwave Cyan (#12072b)',
   },
+  {
+    id: 'nebula',
+    label: 'Nebula',
+    shortLabel: 'Nebula',
+    icon: '🌌',
+    accentColor: '#38bdf8',
+    desc: 'Cosmic Space Midnight & Nebula Purple (#080616)',
+  },
+  {
+    id: 'coffee',
+    label: 'Espresso',
+    shortLabel: 'Coffee',
+    icon: '☕',
+    accentColor: '#f59e0b',
+    desc: 'Warm Espresso & Caramel Macchiato (#140d0a)',
+  },
 ];
 
 export const ThemeSelector: React.FC = () => {

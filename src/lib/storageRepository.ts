@@ -200,6 +200,39 @@ export async function getSqliteDb() {
       // Index already exists
     }
 
+    // Migration v12: Eisenhower quadrant, task dependencies and yearly analytics table
+    try {
+      await dbInstance.execute("ALTER TABLE tasks ADD COLUMN depends_on_task_id TEXT");
+    } catch {
+      // Column already exists
+    }
+    try {
+      await dbInstance.execute("ALTER TABLE tasks ADD COLUMN eisenhower_quadrant TEXT DEFAULT 'q2_not_urgent_important'");
+    } catch {
+      // Column already exists
+    }
+    try {
+      await dbInstance.execute("CREATE INDEX IF NOT EXISTS idx_tasks_quadrant ON tasks(eisenhower_quadrant)");
+      await dbInstance.execute("CREATE INDEX IF NOT EXISTS idx_tasks_depends_on ON tasks(depends_on_task_id)");
+    } catch {
+      // Index already exists
+    }
+    try {
+      await dbInstance.execute(`
+        CREATE TABLE IF NOT EXISTS yearly_analytics (
+          year TEXT PRIMARY KEY,
+          total_checkins INTEGER NOT NULL DEFAULT 0,
+          active_days INTEGER NOT NULL DEFAULT 0,
+          best_streak INTEGER NOT NULL DEFAULT 0,
+          completion_rate REAL NOT NULL DEFAULT 0.0,
+          analytics_json TEXT NOT NULL DEFAULT '{}',
+          updated_at TEXT NOT NULL
+        )
+      `);
+    } catch {
+      // Table already exists
+    }
+
     return dbInstance;
   } catch (err) {
     console.warn('[StorageRepository] Failed to initialize SQLite DB:', err);

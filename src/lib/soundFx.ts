@@ -1399,6 +1399,149 @@ export function playCertificateSound(): void {
 }
 
 /**
+ * 39. playNebulaSound() — космическое звёздное мерцание (гармоники 432Гц и 864Гц с плавным затуханием)
+ */
+export function playNebulaSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const vol = getMasterVolume();
+    const now = ctx.currentTime;
+    const freqs = [432, 648, 864, 1296];
+
+    freqs.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = now + idx * 0.06;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.linearRampToValueAtTime(0.18 * vol, startTime + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.65);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.7);
+    });
+  } catch (err) {
+    console.warn('Audio playNebulaSound error:', err);
+  }
+}
+
+/**
+ * 40. playCoffeeSound() — тёплый акустический тон эспрессо/кафе
+ */
+export function playCoffeeSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const vol = getMasterVolume();
+    const now = ctx.currentTime;
+
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc1.type = 'triangle';
+    osc2.type = 'sine';
+    osc1.frequency.setValueAtTime(329.63, now); // E4
+    osc2.frequency.setValueAtTime(493.88, now + 0.04); // B4
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.24 * vol, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc1.start(now);
+    osc2.start(now + 0.04);
+    osc1.stop(now + 0.48);
+    osc2.stop(now + 0.48);
+  } catch (err) {
+    console.warn('Audio playCoffeeSound error:', err);
+  }
+}
+
+/**
+ * 41. playEisenhowerMoveSound() — быстрый тактильный свиш при переносе задачи между квадрантами
+ */
+export function playEisenhowerMoveSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const vol = getMasterVolume();
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, now);
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.22 * vol, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.16);
+  } catch (err) {
+    console.warn('Audio playEisenhowerMoveSound error:', err);
+  }
+}
+
+/**
+ * 42. playAnnualReportFanfare() — торжественный перезвон для годового отчёта (365 дней)
+ */
+export function playAnnualReportFanfare(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const vol = getMasterVolume();
+    const now = ctx.currentTime;
+
+    const chord = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98]; // C Major arpeggio + high chord
+    chord.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = now + idx * 0.07;
+
+      osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.linearRampToValueAtTime(0.2 * vol, startTime + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.65);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.68);
+    });
+  } catch (err) {
+    console.warn('Audio playAnnualReportFanfare error:', err);
+  }
+}
+
+/**
  * Каталог доступных процедурных Web Audio FX для звукового теста и превью
  */
 export interface SoundPreset {
@@ -1416,6 +1559,7 @@ export const SOUND_FX_CATALOG: SoundPreset[] = [
   { id: 'flame', name: 'Огонь стрика', description: 'Разжигание серии активности', icon: '🔥', play: playFlameSound },
   { id: 'task', name: 'Выполнение задачи', description: 'Чекбокс закрытия дела', icon: '🎯', play: playTaskCompleteSound },
   { id: 'kanban_move', name: 'Канбан-перемещение', description: 'Смена статуса задачи в колонке', icon: '📋', play: playKanbanMoveSound },
+  { id: 'eisenhower_move', name: 'Матрица Эйзенхауэра', description: 'Перенос между квадрантами матрицы', icon: '🗂️', play: playEisenhowerMoveSound },
   { id: 'focus_log', name: 'Лог фокуса', description: 'Добавление минут Помодоро', icon: '⏱️', play: playFocusLogSound },
   { id: 'bulk', name: 'Массовые действия', description: 'Групповая операция над задачами', icon: '⚡', play: playBulkActionSound },
   { id: 'recurrence', name: 'Цикл повтора', description: 'Перенос повторяющейся задачи', icon: '🔁', play: playRecurrenceSound },
@@ -1426,9 +1570,12 @@ export const SOUND_FX_CATALOG: SoundPreset[] = [
   { id: 'milestone_cheer', name: 'Триумф рубежа', description: 'Праздничный каскадный перезвон', icon: '🌟', play: playMilestoneCheerSound },
   { id: 'badge', name: 'Значок рубежа', description: 'Награда за юбилейный стрик', icon: '🎖️', play: playBadgeUnlockSound },
   { id: 'certificate', name: 'Сертификат мастера', description: 'Вручение диплома за стрик', icon: '📜', play: playCertificateSound },
+  { id: 'annual_report', name: 'Годовой отчёт', description: 'Торжественный перезвон 365 дней', icon: '🏆', play: playAnnualReportFanfare },
   { id: 'aurora', name: 'Северное сияние', description: 'Полярное мерцание и гармония', icon: '✨', play: playAuroraSound },
   { id: 'solarpunk', name: 'Солнечный свет', description: 'Янтарный гармонический аккорд', icon: '☀️', play: playSolarSound },
   { id: 'vaporwave', name: 'Вейпорвейв синт', description: '80s мечтательный неоновый аккорд', icon: '🌴', play: playVaporwaveSound },
+  { id: 'nebula', name: 'Космическая Туманность', description: 'Астральное звёздное мерцание', icon: '🌌', play: playNebulaSound },
+  { id: 'coffee', name: 'Эспрессо / Кофе', description: 'Тёплый акустический тембр', icon: '☕', play: playCoffeeSound },
   { id: 'fanfare', name: 'Ачивка', description: 'Разблокировка трофея', icon: '🎺', play: playAchievementFanfare },
   { id: 'level_up', name: 'Повышение уровня', description: 'Новый ранг и победа', icon: '🏆', play: playLevelUpSound },
   { id: 'timer', name: 'Таймер Помодоро', description: 'Завершение фокус-раунда', icon: '⏱️', play: playTimerCompleteSound },

@@ -42,6 +42,7 @@ import HudWidget from './components/HudWidget';
 import { DailySummaryShareModal } from './components/DailySummaryShareModal';
 import { WeeklySprintShareModal } from './components/WeeklySprintShareModal';
 import { MonthlyRecapShareModal } from './components/MonthlyRecapShareModal';
+import { YearlyContributionShareModal } from './components/YearlyContributionShareModal';
 import { SoundEffectsModal } from './components/SoundEffectsModal';
 import { PluginSlotRenderer } from './components/PluginSlots';
 import { PluginMarketplace } from './components/PluginMarketplace';
@@ -65,6 +66,7 @@ export const App: React.FC = () => {
   const [isDailySummaryOpen, setIsDailySummaryOpen] = useState(false);
   const [isWeeklySprintOpen, setIsWeeklySprintOpen] = useState(false);
   const [isMonthlyRecapOpen, setIsMonthlyRecapOpen] = useState(false);
+  const [isYearlyContributionOpen, setIsYearlyContributionOpen] = useState(false);
   const [isSoundEffectsOpen, setIsSoundEffectsOpen] = useState(false);
   const [language, setLanguage] = useState<SupportedLanguage>('ru');
 
@@ -346,6 +348,20 @@ export const App: React.FC = () => {
             >
               <Sun className="w-3.5 h-3.5 text-amber-400" />
               <span className="hidden md:inline">Итоги месяца</span>
+            </button>
+
+            {/* Кнопка годовой активности 365д */}
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setIsYearlyContributionOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-surface-card border border-surface-border hover:border-emerald-500/50 text-slate-300 hover:text-white text-xs font-bold transition-all cursor-pointer shadow-sm"
+              title="Годовая карта активности 365 дней (52 недели) и шеринг карточки"
+            >
+              <Trophy className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden md:inline">Год 365д</span>
             </button>
 
             {/* Баланс очков / XP */}
@@ -886,6 +902,12 @@ export const App: React.FC = () => {
       <MonthlyRecapShareModal
         isOpen={isMonthlyRecapOpen}
         onClose={() => setIsMonthlyRecapOpen(false)}
+      />
+
+      {/* Модалка годового отчёта и шеринга 365 дней */}
+      <YearlyContributionShareModal
+        isOpen={isYearlyContributionOpen}
+        onClose={() => setIsYearlyContributionOpen(false)}
       />
 
       {/* Каталог процедурных звуков Web Audio FX */}
