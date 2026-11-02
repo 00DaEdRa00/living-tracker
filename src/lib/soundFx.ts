@@ -1283,6 +1283,122 @@ export function playMilestoneCheerSound(): void {
 }
 
 /**
+ * 37. playVaporwaveSound() — ностальгический мерцающий вейпорвейв аккорд 80-х (F4, A4, C5, E5, G5)
+ */
+export function playVaporwaveSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const vol = getMasterVolume();
+    const now = ctx.currentTime;
+    const notes = [
+      { f: 349.23, t: 0.0 },   // F4
+      { f: 440.0, t: 0.08 },   // A4
+      { f: 523.25, t: 0.16 },  // C5
+      { f: 659.25, t: 0.24 },  // E5
+      { f: 783.99, t: 0.32 },  // G5
+    ];
+
+    notes.forEach(({ f, t }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = now + t;
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(f, startTime);
+
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.linearRampToValueAtTime(0.18 * vol, startTime + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.65);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.68);
+    });
+  } catch (err) {
+    console.warn('Audio playVaporwaveSound error:', err);
+  }
+}
+
+/**
+ * 38. playKanbanMoveSound() — мягкий тактильный щелчок при перемещении карточки по канбан-колонкам
+ */
+export function playKanbanMoveSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const vol = getMasterVolume();
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(420, now);
+    osc.frequency.exponentialRampToValueAtTime(780, now + 0.06);
+
+    gain.gain.setValueAtTime(0.25 * vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.1);
+  } catch (err) {
+    console.warn('Audio playKanbanMoveSound error:', err);
+  }
+}
+
+/**
+ * 39. playCertificateSound() — торжественный перезвон вручения сертификата мастера стриков
+ */
+export function playCertificateSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const vol = getMasterVolume();
+    const now = ctx.currentTime;
+    const notes = [
+      { f: 523.25, t: 0.0 },   // C5
+      { f: 659.25, t: 0.1 },   // E5
+      { f: 783.99, t: 0.2 },   // G5
+      { f: 1046.5, t: 0.32 },  // C6
+      { f: 1318.51, t: 0.44 }, // E6
+    ];
+
+    notes.forEach(({ f, t }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = now + t;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, startTime);
+
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.linearRampToValueAtTime(0.22 * vol, startTime + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.5);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.52);
+    });
+  } catch (err) {
+    console.warn('Audio playCertificateSound error:', err);
+  }
+}
+
+/**
  * Каталог доступных процедурных Web Audio FX для звукового теста и превью
  */
 export interface SoundPreset {
@@ -1299,6 +1415,7 @@ export const SOUND_FX_CATALOG: SoundPreset[] = [
   { id: 'water', name: 'Капля воды', description: 'Здоровье и водный баланс', icon: '💧', play: playWaterDropSound },
   { id: 'flame', name: 'Огонь стрика', description: 'Разжигание серии активности', icon: '🔥', play: playFlameSound },
   { id: 'task', name: 'Выполнение задачи', description: 'Чекбокс закрытия дела', icon: '🎯', play: playTaskCompleteSound },
+  { id: 'kanban_move', name: 'Канбан-перемещение', description: 'Смена статуса задачи в колонке', icon: '📋', play: playKanbanMoveSound },
   { id: 'focus_log', name: 'Лог фокуса', description: 'Добавление минут Помодоро', icon: '⏱️', play: playFocusLogSound },
   { id: 'bulk', name: 'Массовые действия', description: 'Групповая операция над задачами', icon: '⚡', play: playBulkActionSound },
   { id: 'recurrence', name: 'Цикл повтора', description: 'Перенос повторяющейся задачи', icon: '🔁', play: playRecurrenceSound },
@@ -1308,8 +1425,10 @@ export const SOUND_FX_CATALOG: SoundPreset[] = [
   { id: 'milestone', name: 'Стрик-рекорд', description: 'Рубеж 7, 14, 21, 30 дней', icon: '⚡', play: playStreakMilestoneSound },
   { id: 'milestone_cheer', name: 'Триумф рубежа', description: 'Праздничный каскадный перезвон', icon: '🌟', play: playMilestoneCheerSound },
   { id: 'badge', name: 'Значок рубежа', description: 'Награда за юбилейный стрик', icon: '🎖️', play: playBadgeUnlockSound },
+  { id: 'certificate', name: 'Сертификат мастера', description: 'Вручение диплома за стрик', icon: '📜', play: playCertificateSound },
   { id: 'aurora', name: 'Северное сияние', description: 'Полярное мерцание и гармония', icon: '✨', play: playAuroraSound },
   { id: 'solarpunk', name: 'Солнечный свет', description: 'Янтарный гармонический аккорд', icon: '☀️', play: playSolarSound },
+  { id: 'vaporwave', name: 'Вейпорвейв синт', description: '80s мечтательный неоновый аккорд', icon: '🌴', play: playVaporwaveSound },
   { id: 'fanfare', name: 'Ачивка', description: 'Разблокировка трофея', icon: '🎺', play: playAchievementFanfare },
   { id: 'level_up', name: 'Повышение уровня', description: 'Новый ранг и победа', icon: '🏆', play: playLevelUpSound },
   { id: 'timer', name: 'Таймер Помодоро', description: 'Завершение фокус-раунда', icon: '⏱️', play: playTimerCompleteSound },

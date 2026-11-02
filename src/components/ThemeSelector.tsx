@@ -110,6 +110,14 @@ const THEME_OPTIONS: ThemeOption[] = [
     accentColor: '#eab308',
     desc: 'Solar Forest Amber & Botanical Emerald (#0a1a14)',
   },
+  {
+    id: 'vaporwave',
+    label: 'Vaporwave',
+    shortLabel: 'Vapor',
+    icon: '🌴',
+    accentColor: '#ff71ce',
+    desc: '80s Neon Pink & Synthwave Cyan (#12072b)',
+  },
 ];
 
 export const ThemeSelector: React.FC = () => {

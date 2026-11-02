@@ -19,10 +19,14 @@ import {
   Edit3,
   Search,
   Archive,
+  Award,
+  Sun,
+  Moon,
+  Sunrise,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
-import type { Habit } from '../types/tracker';
+import type { Habit, HabitTimeOfDay } from '../types/tracker';
 import {
   playHabitCheckSound,
   playStreakFreezeSound,
@@ -35,6 +39,7 @@ import {
 import { sendDesktopNotification } from '../lib/tauriBridge';
 import { HabitShareModal } from './HabitShareModal';
 import { HabitMatrixShareModal } from './HabitMatrixShareModal';
+import { StreakCertificateModal } from './StreakCertificateModal';
 
 export function getStreakBadge(streak: number): { label: string; badgeClass: string } | null {
   if (streak >= 30) {
@@ -154,9 +159,11 @@ export const HabitsSection: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [sharingHabit, setSharingHabit] = useState<Habit | null>(null);
+  const [certHabit, setCertHabit] = useState<Habit | null>(null);
   const [isMatrixShareOpen, setIsMatrixShareOpen] = useState(false);
-  const [heatmapDaysCount, setHeatmapDaysCount] = useState<28 | 56 | 84 | 112 | 140>(28);
+  const [heatmapDaysCount, setHeatmapDaysCount] = useState<28 | 56 | 84 | 112 | 140 | 168>(28);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed' | 'frozen' | 'archived'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [hoveredDay, setHoveredDay] = useState<{
@@ -171,6 +178,7 @@ export const HabitsSection: React.FC = () => {
   const [formCategory, setFormCategory] = useState('Здоровье/Спорт');
   const [formIcon, setFormIcon] = useState('💧');
   const [formTargetDays, setFormTargetDays] = useState<number>(7);
+  const [formTimeOfDay, setFormTimeOfDay] = useState<HabitTimeOfDay>('anytime');
 
   // Форма редактирования привычки
   const [editTitle, setEditTitle] = useState('');
@@ -178,6 +186,7 @@ export const HabitsSection: React.FC = () => {
   const [editCategory, setEditCategory] = useState('Здоровье/Спорт');
   const [editIcon, setEditIcon] = useState('💧');
   const [editTargetDays, setEditTargetDays] = useState<number>(7);
+  const [editTimeOfDay, setEditTimeOfDay] = useState<HabitTimeOfDay>('anytime');
 
   const today = new Date().toISOString().split('T')[0];
   const currentMonth = today.slice(0, 7); // 'YYYY-MM'
@@ -191,6 +200,7 @@ export const HabitsSection: React.FC = () => {
     setEditCategory(habit.category || 'Здоровье/Спорт');
     setEditIcon(habit.icon || '💧');
     setEditTargetDays(habit.targetDaysPerWeek || 7);
+    setEditTimeOfDay(habit.timeOfDay || 'anytime');
   };
 
   const handleSaveEdit = (e: React.FormEvent) => {
@@ -203,6 +213,7 @@ export const HabitsSection: React.FC = () => {
       category: editCategory,
       icon: editIcon,
       targetDaysPerWeek: editTargetDays,
+      timeOfDay: editTimeOfDay,
     });
 
     playEditSound();
@@ -306,12 +317,14 @@ export const HabitsSection: React.FC = () => {
       category: formCategory,
       icon: formIcon,
       targetDaysPerWeek: formTargetDays,
+      timeOfDay: formTimeOfDay,
       frozenDates: [],
     });
 
     setFormTitle('');
     setFormDescription('');
     setFormTargetDays(7);
+    setFormTimeOfDay('anytime');
     setIsModalOpen(false);
   };
 
@@ -330,6 +343,9 @@ export const HabitsSection: React.FC = () => {
     }
 
     if (selectedCategory !== 'all' && (h.category || 'Здоровье/Спорт') !== selectedCategory) {
+      return false;
+    }
+    if (selectedTimeOfDay !== 'all' && (h.timeOfDay || 'anytime') !== selectedTimeOfDay) {
       return false;
     }
     if (statusFilter === 'pending' && h.completedToday) {
@@ -557,6 +573,35 @@ export const HabitsSection: React.FC = () => {
                 </button>
               );
             })}
+          </div>
+
+          <div className="h-4 w-px bg-surface-border hidden md:block" />
+
+          {/* Фильтр времени суток */}
+          <div className="flex items-center gap-1 bg-surface p-0.5 rounded-xl border border-surface-border">
+            {[
+              { id: 'all', label: 'Всё время', icon: '🕒' },
+              { id: 'morning', label: 'Утро', icon: '🌅' },
+              { id: 'afternoon', label: 'День', icon: '☀️' },
+              { id: 'evening', label: 'Вечер', icon: '🌙' },
+            ].map((slot) => (
+              <button
+                key={slot.id}
+                type="button"
+                onClick={() => {
+                  playClickSound();
+                  setSelectedTimeOfDay(slot.id);
+                }}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                  selectedTimeOfDay === slot.id
+                    ? 'bg-accent/20 text-accent font-bold'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span>{slot.icon}</span>
+                <span>{slot.label}</span>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -836,7 +881,9 @@ export const HabitsSection: React.FC = () => {
                                 ? '12 недель'
                                 : heatmapDaysCount === 112
                                 ? '16 недель (Квартал)'
-                                : '20 недель'}
+                                : heatmapDaysCount === 140
+                                ? '20 недель'
+                                : '24 недели (Полгода)'}
                               )
                             </span>
                           </span>
@@ -853,6 +900,8 @@ export const HabitsSection: React.FC = () => {
                                   ? 112
                                   : heatmapDaysCount === 112
                                   ? 140
+                                  : heatmapDaysCount === 140
+                                  ? 168
                                   : 28
                               );
                             }}
@@ -866,6 +915,8 @@ export const HabitsSection: React.FC = () => {
                               ? '16 нед'
                               : heatmapDaysCount === 112
                               ? '20 нед'
+                              : heatmapDaysCount === 140
+                              ? '24 нед'
                               : '4 нед'}
                           </button>
                         </div>
@@ -963,6 +1014,19 @@ export const HabitsSection: React.FC = () => {
                         className="p-2 rounded-xl bg-surface hover:bg-slate-800 text-slate-300 hover:text-accent border border-surface-border transition-colors cursor-pointer"
                       >
                         <Share2 className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* Кнопка «Сертификат мастера» */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          playClickSound();
+                          setCertHabit(habit);
+                        }}
+                        title="Получить официальный Сертификат мастера стриков (PNG)"
+                        className="p-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-colors cursor-pointer"
+                      >
+                        <Award className="w-3.5 h-3.5" />
                       </button>
                     </div>
 
@@ -1135,6 +1199,35 @@ export const HabitsSection: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Время суток / Ритуал */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                    Время суток / Ритуал
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { id: 'anytime', label: 'Любое', icon: '🕒' },
+                      { id: 'morning', label: 'Утро', icon: '🌅' },
+                      { id: 'afternoon', label: 'День', icon: '☀️' },
+                      { id: 'evening', label: 'Вечер', icon: '🌙' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setFormTimeOfDay(opt.id as HabitTimeOfDay)}
+                        className={`p-2 rounded-xl text-center border transition-all cursor-pointer ${
+                          formTimeOfDay === opt.id
+                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm'
+                            : 'bg-surface text-slate-400 border-surface-border hover:text-slate-200'
+                        }`}
+                      >
+                        <div className="text-base">{opt.icon}</div>
+                        <div className="text-[10px] font-bold">{opt.label}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Кнопка создания */}
                 <div className="pt-3">
                   <button
@@ -1162,6 +1255,13 @@ export const HabitsSection: React.FC = () => {
       <HabitMatrixShareModal
         isOpen={isMatrixShareOpen}
         onClose={() => setIsMatrixShareOpen(false)}
+      />
+
+      {/* Модальное окно официального сертификата мастера стриков (html2canvas) */}
+      <StreakCertificateModal
+        isOpen={Boolean(certHabit)}
+        habit={certHabit}
+        onClose={() => setCertHabit(null)}
       />
 
       {/* Модальное окно редактирования привычки */}
@@ -1287,6 +1387,35 @@ export const HabitsSection: React.FC = () => {
                     >
                       <div className="text-xs font-bold">{opt.label}</div>
                       <div className="text-[10px] opacity-75">{opt.sub}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Время суток / Ритуал */}
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Время суток / Ритуал
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { id: 'anytime', label: 'Любое', icon: '🕒' },
+                    { id: 'morning', label: 'Утро', icon: '🌅' },
+                    { id: 'afternoon', label: 'День', icon: '☀️' },
+                    { id: 'evening', label: 'Вечер', icon: '🌙' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setEditTimeOfDay(opt.id as HabitTimeOfDay)}
+                      className={`p-2 rounded-xl text-center border transition-all cursor-pointer ${
+                        editTimeOfDay === opt.id
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm'
+                          : 'bg-surface text-slate-400 border-surface-border hover:text-slate-200'
+                      }`}
+                    >
+                      <div className="text-base">{opt.icon}</div>
+                      <div className="text-[10px] font-bold">{opt.label}</div>
                     </button>
                   ))}
                 </div>

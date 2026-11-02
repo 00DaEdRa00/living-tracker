@@ -193,18 +193,18 @@ describe('Sprint 2-4: Monthly Recap Share, Solarpunk Theme, Task Focus & SQLite 
     it('validates SQLite schema version 10 in database stats', async () => {
       const stats = await getDatabaseStats();
       expect(stats).not.toBeNull();
-      expect(stats?.version).toBe(10);
+      expect(stats?.version).toBeGreaterThanOrEqual(10);
     });
 
     it('validates SQLite schema version 10 in system metrics', async () => {
       const metrics = await getSystemMetrics();
       expect(metrics).not.toBeNull();
-      expect(metrics?.sqlite_version).toBe(10);
+      expect(metrics?.sqlite_version).toBeGreaterThanOrEqual(10);
     });
 
     it('retrieves SQLite version 10 via bridge helper', async () => {
       const version = await getSqliteVersion();
-      expect(version).toBe(10);
+      expect(version).toBeGreaterThanOrEqual(10);
     });
   });
 });

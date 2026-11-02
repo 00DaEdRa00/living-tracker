@@ -123,6 +123,16 @@
   --color-accent-glow: 52 211 153;   /* #34d399 Solar Flora Glow */
 }
 
+[data-theme='vaporwave'],
+.theme-vaporwave {
+  --color-bg-app: 18 7 43;           /* #12072b 80s Synth Midnight */
+  --color-bg-surface: 29 14 63;      /* #1d0e3f */
+  --color-bg-card: 40 20 84;         /* #281454 */
+  --color-border-surface: 185 103 255; /* #b967ff Vapor Neon Violet */
+  --color-accent: 255 113 206;       /* #ff71ce Hot Neon Pink */
+  --color-accent-glow: 1 205 254;    /* #01cdfe Synthwave Cyan */
+}
+
 @layer base {
   html,
   body {

@@ -84,7 +84,7 @@ export async function getDatabaseStats(): Promise<DatabaseStats | null> {
       status: 'browser_fallback',
       storage: 'localStorage',
       db: 'in-memory/web',
-      version: 10,
+      version: 11,
     };
   }
   try {
@@ -111,7 +111,7 @@ export async function getSystemMetrics(): Promise<SystemMetrics | null> {
       memory_mb: 42.5,
       hud_active: true,
       engine: 'browser-simulation',
-      sqlite_version: 10,
+      sqlite_version: 11,
     };
   }
   try {
@@ -125,14 +125,14 @@ export async function getSystemMetrics(): Promise<SystemMetrics | null> {
 
 export async function getSqliteVersion(): Promise<number> {
   if (!isTauri()) {
-    return 10;
+    return 11;
   }
   try {
     const { invoke } = await import('@tauri-apps/api/core');
     return await invoke<number>('get_sqlite_version');
   } catch (err) {
     console.warn('[TauriBridge] Failed to get sqlite version:', err);
-    return 10;
+    return 11;
   }
 }
 

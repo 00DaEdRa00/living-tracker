@@ -4,7 +4,7 @@
 
 export type ToneMode = 'neutral' | 'ironic' | 'sassy';
 
-export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald' | 'synthwave' | 'nord' | 'dracula' | 'tokyo' | 'crimson' | 'matrix' | 'sunset' | 'aurora' | 'solarpunk';
+export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald' | 'synthwave' | 'nord' | 'dracula' | 'tokyo' | 'crimson' | 'matrix' | 'sunset' | 'aurora' | 'solarpunk' | 'vaporwave';
 
 export type TransactionType = 'expense' | 'income';
 
@@ -16,6 +16,8 @@ export interface Transaction {
   date: string; // ISO date string
   type?: TransactionType;
 }
+
+export type HabitTimeOfDay = 'morning' | 'afternoon' | 'evening' | 'anytime';
 
 export interface Habit {
   id: string;
@@ -29,6 +31,7 @@ export interface Habit {
   history: string[]; // ISO date strings ('YYYY-MM-DD')
   frozenDates?: string[]; // ISO date strings ('YYYY-MM-DD')
   targetDaysPerWeek?: number; // 1 to 7 target frequency
+  timeOfDay?: HabitTimeOfDay;
   isArchived?: boolean;
   createdAt: string; // ISO date string
 }
@@ -40,6 +43,7 @@ export interface Subtask {
 }
 
 export type TaskRecurrence = 'none' | 'daily' | 'weekly' | 'monthly';
+export type TaskKanbanStatus = 'todo' | 'in_progress' | 'done';
 
 export interface Task {
   id: string;
@@ -55,6 +59,7 @@ export interface Task {
   imageUrl?: string;
   checklist?: Subtask[];
   recurrence?: TaskRecurrence;
+  kanbanStatus?: TaskKanbanStatus;
   estimatedMinutes?: number;
   spentMinutes?: number;
   isPinned?: boolean;
@@ -164,6 +169,7 @@ export interface TrackerActions {
   unarchiveHabit: (id: string) => void;
   addTask: (task: Omit<Task, 'id' | 'completed' | 'createdAt'> & { id?: string; createdAt?: string }) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
+  updateTaskKanbanStatus: (taskId: string, status: TaskKanbanStatus) => void;
   toggleTaskPin: (taskId: string) => void;
   bulkCompleteTasks: (taskIds: string[]) => void;
   bulkRescheduleTasks: (taskIds: string[], daysToAdd: number) => void;

@@ -7,6 +7,7 @@ import type {
   Transaction,
   Habit,
   Task,
+  TaskKanbanStatus,
   Budget,
   ToneMode,
   AppTheme,
@@ -380,6 +381,10 @@ export const useTrackerStore = create<TrackerStore>()(
               newHistory.push(today);
             }
             playHabitCheckSound();
+            if (newStreak > 0 && newStreak % 7 === 0) {
+              const currentShields = state.freezeShields || 0;
+              setState({ freezeShields: currentShields + 1 });
+            }
           } else {
             newStreak = Math.max(0, habit.streak - 1);
             newHistory = newHistory.filter((d) => d !== today);
@@ -509,6 +514,7 @@ export const useTrackerStore = create<TrackerStore>()(
                   ...t,
                   completed: willBeCompleted,
                   completedAt: willBeCompleted ? now.toISOString() : undefined,
+                  kanbanStatus: (willBeCompleted ? 'done' : 'todo') as TaskKanbanStatus,
                 }
               : t
           );
@@ -756,6 +762,22 @@ export const useTrackerStore = create<TrackerStore>()(
           }));
         },
 
+        updateTaskKanbanStatus: (taskId, status) => {
+          const now = new Date();
+          const isDone = status === 'done';
+          setState((state) => ({
+            tasks: state.tasks.map((t) => {
+              if (t.id !== taskId) return t;
+              return {
+                ...t,
+                kanbanStatus: status,
+                completed: isDone,
+                completedAt: isDone ? (t.completedAt || now.toISOString()) : undefined,
+              };
+            }),
+          }));
+        },
+
         toggleTaskPin: (taskId) => {
           setState((state) => ({
             tasks: state.tasks.map((t) =>
@@ -778,7 +800,7 @@ export const useTrackerStore = create<TrackerStore>()(
                 daysPending = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
               }
               newlyCompleted.push({ id: t.id, daysPending });
-              return { ...t, completed: true, completedAt: now.toISOString() };
+              return { ...t, completed: true, completedAt: now.toISOString(), kanbanStatus: 'done' as TaskKanbanStatus };
             }
             return t;
           });

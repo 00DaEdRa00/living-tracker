@@ -182,6 +182,24 @@ export async function getSqliteDb() {
       // Table already exists
     }
 
+    // Migration v11: time_of_day for habits and kanban_status for tasks
+    try {
+      await dbInstance.execute("ALTER TABLE habits ADD COLUMN time_of_day TEXT DEFAULT 'anytime'");
+    } catch {
+      // Column already exists
+    }
+    try {
+      await dbInstance.execute("ALTER TABLE tasks ADD COLUMN kanban_status TEXT DEFAULT 'todo'");
+    } catch {
+      // Column already exists
+    }
+    try {
+      await dbInstance.execute("CREATE INDEX IF NOT EXISTS idx_tasks_kanban ON tasks(kanban_status)");
+      await dbInstance.execute("CREATE INDEX IF NOT EXISTS idx_habits_time_of_day ON habits(time_of_day)");
+    } catch {
+      // Index already exists
+    }
+
     return dbInstance;
   } catch (err) {
     console.warn('[StorageRepository] Failed to initialize SQLite DB:', err);
@@ -324,8 +342,8 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
   if (Array.isArray(state.habits)) {
     for (const h of state.habits) {
       await db.execute(
-        `INSERT INTO habits (id, title, description, category, icon, streak, best_streak, completed_today, history_json, frozen_dates_json, target_days_per_week, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        `INSERT INTO habits (id, title, description, category, icon, streak, best_streak, completed_today, history_json, frozen_dates_json, target_days_per_week, time_of_day, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
          ON CONFLICT(id) DO UPDATE SET
            title = excluded.title,
            description = excluded.description,
@@ -336,7 +354,8 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
            completed_today = excluded.completed_today,
            history_json = excluded.history_json,
            frozen_dates_json = excluded.frozen_dates_json,
-           target_days_per_week = excluded.target_days_per_week`,
+           target_days_per_week = excluded.target_days_per_week,
+           time_of_day = excluded.time_of_day`,
         [
           h.id,
           h.title,
@@ -349,6 +368,7 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
           JSON.stringify(h.history || []),
           JSON.stringify(h.frozenDates || []),
           h.targetDaysPerWeek || 7,
+          h.timeOfDay || 'anytime',
           h.createdAt || new Date().toISOString(),
         ]
       );
@@ -359,8 +379,8 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
   if (Array.isArray(state.tasks)) {
     for (const t of state.tasks) {
       await db.execute(
-        `INSERT INTO tasks (id, title, description, completed, priority, category, icon, image_url, checklist_json, recurrence, estimated_minutes, due_date, is_pinned, tags_json, created_at, completed_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        `INSERT INTO tasks (id, title, description, completed, priority, category, icon, image_url, checklist_json, recurrence, estimated_minutes, due_date, is_pinned, tags_json, kanban_status, created_at, completed_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
          ON CONFLICT(id) DO UPDATE SET
            title = excluded.title,
            description = excluded.description,
@@ -375,6 +395,7 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
            due_date = excluded.due_date,
            is_pinned = excluded.is_pinned,
            tags_json = excluded.tags_json,
+           kanban_status = excluded.kanban_status,
            completed_at = excluded.completed_at`,
         [
           t.id,
@@ -391,6 +412,7 @@ async function syncRelationalTables(db: Database, state: Partial<TrackerState>):
           t.dueDate || null,
           t.isPinned ? 1 : 0,
           JSON.stringify(t.tags || []),
+          t.kanbanStatus || (t.completed ? 'done' : 'todo'),
           t.createdAt || new Date().toISOString(),
           t.completedAt || null,
         ]
