@@ -21,6 +21,7 @@ import {
   playCatSound,
   playOverageAlarm,
 } from '../lib/soundFx';
+import { hybridStorage } from '../lib/storageRepository';
 
 export { eventBus };
 export { ACHIEVEMENTS, getAchievementText } from '../data/achievements';
@@ -600,7 +601,7 @@ export const useTrackerStore = create<TrackerStore>()(
     },
     {
       name: 'living-tracker-storage',
-      storage: createJSONStorage(() => safeLocalStorage),
+      storage: createJSONStorage(() => hybridStorage),
     }
   )
 );

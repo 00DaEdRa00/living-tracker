@@ -32,13 +32,21 @@ import AchievementModal from './components/AchievementModal';
 import QuickAddModal from './components/QuickAddModal';
 import TasksSection from './components/TasksSection';
 import HabitsSection from './components/HabitsSection';
+import HudWidget from './components/HudWidget';
+import { isTauri, toggleHudWindow } from './lib/tauriBridge';
 import { playCoinSound } from './lib/soundFx';
 
 export type DashboardTab = 'all' | 'tasks' | 'habits' | 'finances';
 
 export const App: React.FC = () => {
+  const isHudWindow =
+    typeof window !== 'undefined' &&
+    (window.location.search.includes('window=hud') ||
+      window.location.hash.includes('hud'));
+
   const [activeTab, setActiveTab] = useState<DashboardTab>('all');
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
+  const [isHudPreviewOpen, setIsHudPreviewOpen] = useState(false);
 
   // Стор
   const budget = useTrackerStore((state) => state.budget);
@@ -97,6 +105,15 @@ export const App: React.FC = () => {
     return 'Укроти бабки и не слей свою жизнь в унитаз!';
   };
 
+  // Режим плавающего окна HUD виджета
+  if (isHudWindow) {
+    return (
+      <div className="w-full h-screen bg-transparent flex items-center justify-center p-0 m-0 overflow-hidden">
+        <HudWidget />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background text-slate-100 flex flex-col selection:bg-accent/30 selection:text-white">
       {/* Шапка дашборда */}
@@ -114,7 +131,7 @@ export const App: React.FC = () => {
                   Живой трекер
                 </span>
                 <span className="hidden sm:inline-block text-[10px] font-bold px-2 py-0.5 bg-accent/15 border border-accent/40 text-accent rounded-full uppercase tracking-wider">
-                  Sprint 3
+                  Sprint 4 • Tauri
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-slate-400 truncate max-w-[200px] sm:max-w-md">
@@ -158,6 +175,35 @@ export const App: React.FC = () => {
               ) : (
                 <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />
               )}
+            </button>
+
+            {/* Кнопка вызова плавающего HUD-виджета */}
+            <button
+              type="button"
+              onClick={async () => {
+                if (isTauri()) {
+                  await toggleHudWindow();
+                } else {
+                  setIsHudPreviewOpen(!isHudPreviewOpen);
+                  playCoinSound();
+                }
+              }}
+              title={
+                isTauri()
+                  ? 'Переключить нативный плавающий HUD виджет'
+                  : 'Превью плавающего HUD виджета'
+              }
+              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border transition-all duration-200 cursor-pointer focus:outline-none text-xs font-bold ${
+                isHudPreviewOpen
+                  ? 'bg-accent/20 border-accent/40 text-accent shadow-[0_0_12px_rgba(56,189,248,0.25)]'
+                  : 'bg-surface-card border-surface-border text-slate-300 hover:text-white hover:border-slate-500'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5 text-accent animate-pulse" />
+              <span className="hidden sm:inline">HUD</span>
+              <span className="text-[10px] px-1 py-0.2 rounded-full bg-accent/20 text-accent uppercase font-black">
+                виджет
+              </span>
             </button>
 
             {/* Баланс очков / XP */}
@@ -634,6 +680,11 @@ export const App: React.FC = () => {
         isOpen={isAddExpenseOpen}
         onClose={() => setIsAddExpenseOpen(false)}
       />
+
+      {/* Плавающий HUD-виджет для браузерного превью */}
+      {isHudPreviewOpen && (
+        <HudWidget isOverlay onClose={() => setIsHudPreviewOpen(false)} />
+      )}
     </div>
   );
 };
