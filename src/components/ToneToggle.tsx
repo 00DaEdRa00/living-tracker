@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useTrackerStore } from '../store/useTrackerStore';
 import type { ToneMode } from '../types/tracker';
+import { playClickSound } from '../lib/soundFx';
 
 interface ToneOption {
   id: ToneMode;
@@ -54,7 +55,10 @@ export const ToneToggle: React.FC = () => {
             key={opt.id}
             type="button"
             title={opt.desc}
-            onClick={() => setTone(opt.id)}
+            onClick={() => {
+              setTone(opt.id);
+              playClickSound();
+            }}
             className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
               isActive
                 ? 'text-white'

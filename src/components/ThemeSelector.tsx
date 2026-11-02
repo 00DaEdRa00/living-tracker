@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useTrackerStore } from '../store/useTrackerStore';
 import type { AppTheme } from '../types/tracker';
+import { playClickSound } from '../lib/soundFx';
 
 interface ThemeOption {
   id: AppTheme;
@@ -56,7 +57,10 @@ export const ThemeSelector: React.FC = () => {
             key={opt.id}
             type="button"
             title={opt.desc}
-            onClick={() => setTheme(opt.id)}
+            onClick={() => {
+              setTheme(opt.id);
+              playClickSound();
+            }}
             className={`relative z-10 flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
               isActive
                 ? 'text-white font-bold'
