@@ -18,6 +18,7 @@ import {
   Share2,
   Edit3,
   Search,
+  Archive,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
@@ -144,6 +145,8 @@ export const HabitsSection: React.FC = () => {
   const addHabit = useTrackerStore((state) => state.addHabit);
   const updateHabit = useTrackerStore((state) => state.updateHabit);
   const deleteHabit = useTrackerStore((state) => state.deleteHabit);
+  const archiveHabit = useTrackerStore((state) => state.archiveHabit);
+  const unarchiveHabit = useTrackerStore((state) => state.unarchiveHabit);
   const openAchievementModal = useTrackerStore((state) => state.openAchievementModal);
   const tone = useTrackerStore((state) => state.tone);
   const freezeShields = useTrackerStore((state) => state.freezeShields ?? 3);
@@ -152,9 +155,9 @@ export const HabitsSection: React.FC = () => {
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [sharingHabit, setSharingHabit] = useState<Habit | null>(null);
   const [isMatrixShareOpen, setIsMatrixShareOpen] = useState(false);
-  const [heatmapDaysCount, setHeatmapDaysCount] = useState<28 | 56 | 84>(28);
+  const [heatmapDaysCount, setHeatmapDaysCount] = useState<28 | 56 | 84 | 112>(28);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed' | 'frozen'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed' | 'frozen' | 'archived'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [hoveredDay, setHoveredDay] = useState<{
     habitId: string;
@@ -320,6 +323,12 @@ export const HabitsSection: React.FC = () => {
 
   // Фильтрация привычек по категории и поисковому запросу
   const filteredHabits = habits.filter((h) => {
+    if (statusFilter === 'archived') {
+      if (!h.isArchived) return false;
+    } else {
+      if (h.isArchived) return false;
+    }
+
     if (selectedCategory !== 'all' && (h.category || 'Здоровье/Спорт') !== selectedCategory) {
       return false;
     }
@@ -507,6 +516,20 @@ export const HabitsSection: React.FC = () => {
             >
               Заморожены ({habits.filter((h) => h.frozenDates && h.frozenDates.includes(today)).length})
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setStatusFilter('archived');
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                statusFilter === 'archived'
+                  ? 'bg-amber-500/20 text-amber-300 font-bold shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Архив ({habits.filter((h) => h.isArchived).length})
+            </button>
           </div>
 
           <div className="h-4 w-px bg-surface-border hidden sm:block" />
@@ -681,8 +704,23 @@ export const HabitsSection: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Действия карточки: Редактирование и Удаление */}
+                      {/* Действия карточки: Архив, Редактирование и Удаление */}
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            playClickSound();
+                            if (habit.isArchived) {
+                              unarchiveHabit(habit.id);
+                            } else {
+                              archiveHabit(habit.id);
+                            }
+                          }}
+                          title={habit.isArchived ? 'Восстановить из архива' : 'В архив'}
+                          className="p-1.5 text-slate-500 hover:text-amber-300 rounded-xl hover:bg-surface transition-all cursor-pointer"
+                        >
+                          <Archive className="w-4 h-4" />
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleOpenEdit(habit)}
@@ -794,7 +832,9 @@ export const HabitsSection: React.FC = () => {
                                 ? '4 недели'
                                 : heatmapDaysCount === 56
                                 ? '8 недель'
-                                : '12 недель'}
+                                : heatmapDaysCount === 84
+                                ? '12 недель'
+                                : '16 недель (Квартал)'}
                               )
                             </span>
                           </span>
@@ -807,6 +847,8 @@ export const HabitsSection: React.FC = () => {
                                   ? 56
                                   : heatmapDaysCount === 56
                                   ? 84
+                                  : heatmapDaysCount === 84
+                                  ? 112
                                   : 28
                               );
                             }}
@@ -816,6 +858,8 @@ export const HabitsSection: React.FC = () => {
                               ? '8 нед'
                               : heatmapDaysCount === 56
                               ? '12 нед'
+                              : heatmapDaysCount === 84
+                              ? '16 нед'
                               : '4 нед'}
                           </button>
                         </div>

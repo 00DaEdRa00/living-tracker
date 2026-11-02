@@ -23,6 +23,7 @@ import {
   ListTodo,
   Upload,
   Pin,
+  CheckSquare,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
@@ -39,6 +40,7 @@ import {
   playShareSound,
   playPomodoroTickSound,
   playTimerCompleteSound,
+  playBulkActionSound,
 } from '../lib/soundFx';
 import { sendDesktopNotification } from '../lib/tauriBridge';
 import { TaskShareModal } from './TaskShareModal';
@@ -254,6 +256,10 @@ export const TasksSection: React.FC = () => {
   const removeSubtask = useTrackerStore((state) => state.removeSubtask);
   const tone = useTrackerStore((state) => state.tone);
   const recordFocusSession = useTrackerStore((state) => state.recordFocusSession);
+  const bulkCompleteTasks = useTrackerStore((state) => state.bulkCompleteTasks);
+  const bulkRescheduleTasks = useTrackerStore((state) => state.bulkRescheduleTasks);
+  const bulkDeleteTasks = useTrackerStore((state) => state.bulkDeleteTasks);
+  const bulkSetTaskPriority = useTrackerStore((state) => state.bulkSetTaskPriority);
 
   const [selectedSphere, setSelectedSphere] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed' | 'recurring'>('all');
@@ -262,6 +268,8 @@ export const TasksSection: React.FC = () => {
   const [sortMode, setSortMode] = useState<'default' | 'urgency' | 'priority' | 'newest' | 'alphabetical'>('default');
   const [viewMode, setViewMode] = useState<'grid' | 'matrix'>('grid');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isBulkMode, setIsBulkMode] = useState(false);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [inlineSubtaskText, setInlineSubtaskText] = useState<{ [taskId: string]: string }>({});
@@ -897,6 +905,25 @@ export const TasksSection: React.FC = () => {
             </button>
           </div>
 
+          {/* Переключатель режима массовых действий */}
+          <button
+            type="button"
+            onClick={() => {
+              playClickSound();
+              setIsBulkMode(!isBulkMode);
+              if (isBulkMode) setSelectedTaskIds([]);
+            }}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+              isBulkMode
+                ? 'bg-purple-500/25 text-purple-300 border-purple-500/50 shadow-md shadow-purple-500/20'
+                : 'bg-surface text-slate-400 border-surface-border hover:text-white'
+            }`}
+          >
+            <CheckSquare className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{isBulkMode ? 'Выход из выбора' : 'Массовые действия'}</span>
+            <span className="sm:hidden">{isBulkMode ? 'Отмена' : 'Выбор'}</span>
+          </button>
+
           <span className="text-[11px] text-slate-400 hidden sm:inline-block">
             Показано: <strong className="text-white">{sortedTasks.length}</strong>
           </span>
@@ -1219,6 +1246,30 @@ export const TasksSection: React.FC = () => {
                       : 'border-surface-border hover:border-slate-600 shadow-md'
                   }`}
                 >
+                  {/* Чекбокс массового выбора */}
+                  {isBulkMode && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        playClickSound();
+                        setSelectedTaskIds((prev) =>
+                          prev.includes(task.id)
+                            ? prev.filter((id) => id !== task.id)
+                            : [...prev, task.id]
+                        );
+                      }}
+                      className="absolute top-2.5 left-2.5 z-30 p-1.5 rounded-xl bg-surface-card/90 backdrop-blur-md border border-surface-border shadow-lg hover:border-purple-400 text-white transition-all cursor-pointer"
+                      title={selectedTaskIds.includes(task.id) ? 'Снять выбор' : 'Выбрать задачу'}
+                    >
+                      {selectedTaskIds.includes(task.id) ? (
+                        <CheckCircle2 className="w-4 h-4 text-purple-400 fill-purple-400/20" />
+                      ) : (
+                        <Circle className="w-4 h-4 text-slate-400" />
+                      )}
+                    </button>
+                  )}
+
                   {/* Обложка-картинка карточки задачи */}
                   {task.imageUrl && (
                     <div className="relative h-28 -mx-4 -mt-4 mb-3 overflow-hidden rounded-t-3xl bg-slate-900 border-b border-surface-border">
@@ -2281,6 +2332,114 @@ export const TasksSection: React.FC = () => {
           isOpen={isLifeBalanceShareOpen}
           onClose={() => setIsLifeBalanceShareOpen(false)}
         />
+
+        {/* Плавающая панель массовых действий */}
+        {isBulkMode && selectedTaskIds.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-xl w-[92%] p-3.5 rounded-2xl bg-surface-card/95 backdrop-blur-xl border border-purple-500/40 shadow-2xl shadow-purple-950/40 flex flex-wrap items-center justify-between gap-3 text-xs"
+          >
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-white flex items-center gap-1.5">
+                <CheckSquare className="w-4 h-4 text-purple-400" />
+                Выбрано: <strong className="text-purple-300">{selectedTaskIds.length}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  playClickSound();
+                  setSelectedTaskIds(sortedTasks.map((t) => t.id));
+                }}
+                className="text-[11px] text-slate-400 hover:text-white underline cursor-pointer"
+              >
+                Все
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  playClickSound();
+                  setSelectedTaskIds([]);
+                }}
+                className="text-[11px] text-slate-400 hover:text-white underline cursor-pointer"
+              >
+                Снять
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Bulk Complete */}
+              <button
+                type="button"
+                onClick={() => {
+                  playBulkActionSound();
+                  bulkCompleteTasks(selectedTaskIds);
+                  setSelectedTaskIds([]);
+                  try {
+                    confetti({ particleCount: 35, spread: 50, origin: { y: 0.85 } });
+                  } catch {
+                    // safe
+                  }
+                }}
+                className="px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500 hover:text-slate-950 font-bold transition-all cursor-pointer"
+              >
+                ✓ Завершить
+              </button>
+
+              {/* Bulk Reschedule */}
+              <button
+                type="button"
+                onClick={() => {
+                  playBulkActionSound();
+                  bulkRescheduleTasks(selectedTaskIds, 1);
+                }}
+                className="px-2 py-1 rounded-xl bg-blue-500/20 text-blue-300 hover:bg-blue-500 hover:text-slate-950 font-bold transition-all cursor-pointer"
+                title="Отложить на +1 день"
+              >
+                +1 дн
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  playBulkActionSound();
+                  bulkRescheduleTasks(selectedTaskIds, 3);
+                }}
+                className="px-2 py-1 rounded-xl bg-blue-500/20 text-blue-300 hover:bg-blue-500 hover:text-slate-950 font-bold transition-all cursor-pointer"
+                title="Отложить на +3 дня"
+              >
+                +3 дн
+              </button>
+
+              {/* Bulk Priority */}
+              <button
+                type="button"
+                onClick={() => {
+                  playBulkActionSound();
+                  bulkSetTaskPriority(selectedTaskIds, 'high');
+                }}
+                className="px-2 py-1 rounded-xl bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-slate-950 font-bold transition-all cursor-pointer"
+                title="Приоритет: Высокий"
+              >
+                🔴 High
+              </button>
+
+              {/* Bulk Delete */}
+              <button
+                type="button"
+                onClick={() => {
+                  playTrashSound();
+                  bulkDeleteTasks(selectedTaskIds);
+                  setSelectedTaskIds([]);
+                }}
+                className="px-2.5 py-1 rounded-xl bg-rose-950/60 text-rose-400 hover:bg-rose-800 hover:text-white font-bold transition-all cursor-pointer"
+                title="Удалить выбранные"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </section>
   );

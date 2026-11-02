@@ -19,6 +19,7 @@ import {
   Plus,
   Snowflake,
   Timer,
+  Palette,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useTrackerStore } from '../store/useTrackerStore';
@@ -38,6 +39,7 @@ import {
   playPomodoroTickSound,
   playTimerCompleteSound,
   playClickSound,
+  playThemeSwitchSound,
 } from '../lib/soundFx';
 
 interface HudWidgetProps {
@@ -71,8 +73,30 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
   const addTransaction = useTrackerStore((state) => state.addTransaction);
   const clickCat = useTrackerStore((state) => state.clickCat);
   const tone = useTrackerStore((state) => state.tone);
+  const theme = useTrackerStore((state) => state.theme);
+  const setTheme = useTrackerStore((state) => state.setTheme);
   const freezeShields = useTrackerStore((state) => state.freezeShields ?? 3);
   const recordFocusSession = useTrackerStore((state) => state.recordFocusSession);
+
+  const handleCycleTheme = () => {
+    const themes: Array<typeof theme> = [
+      'amoled',
+      'cyberpunk',
+      'emerald',
+      'synthwave',
+      'nord',
+      'dracula',
+      'tokyo',
+      'crimson',
+      'matrix',
+      'sunset',
+      'aurora',
+    ];
+    const currentIndex = themes.indexOf(theme);
+    const nextIndex = (currentIndex + 1) % themes.length;
+    setTheme(themes[nextIndex]);
+    playThemeSwitchSound();
+  };
 
   // HUD Pomodoro Timer Effect
   useEffect(() => {
@@ -275,6 +299,15 @@ export const HudWidget: React.FC<HudWidgetProps> = ({ onClose, isOverlay = false
 
         {/* HUD Window Controls */}
         <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={handleCycleTheme}
+            title={`Тема: ${theme} (нажмите для смены темы)`}
+            className="p-1.5 rounded-lg bg-surface-card border border-surface-border text-slate-400 hover:text-accent hover:border-accent/40 transition-colors"
+          >
+            <Palette className="w-3.5 h-3.5" />
+          </button>
+
           <button
             type="button"
             onClick={handleToggleAlwaysOnTop}

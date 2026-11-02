@@ -1100,6 +1100,77 @@ export function playBadgeUnlockSound(): void {
 }
 
 /**
+ * 31. playAuroraSound() — небесное мерцание северного сияния (полифонический перелив)
+ */
+export function playAuroraSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const vol = getMasterVolume();
+    const frequencies = [440, 554.37, 659.25, 880]; // A4, C#5, E5, A5
+
+    frequencies.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = now + idx * 0.06;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.05, startTime + 0.35);
+
+      gain.gain.setValueAtTime(0.08 * vol, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.4);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.42);
+    });
+  } catch (err) {
+    console.warn('Audio playAuroraSound error:', err);
+  }
+}
+
+/**
+ * 32. playBulkActionSound() — кибер-аккорд группового действия над задачами
+ */
+export function playBulkActionSound(): void {
+  if (!canPlaySound()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const vol = getMasterVolume();
+    const chord = [392.0, 523.25, 659.25, 783.99]; // G4, C5, E5, G5
+
+    chord.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = now + idx * 0.035;
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      gain.gain.setValueAtTime(0.14 * vol, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.22);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.24);
+    });
+  } catch (err) {
+    console.warn('Audio playBulkActionSound error:', err);
+  }
+}
+
+/**
  * Каталог доступных процедурных Web Audio FX для звукового теста и превью
  */
 export interface SoundPreset {
@@ -1116,12 +1187,14 @@ export const SOUND_FX_CATALOG: SoundPreset[] = [
   { id: 'water', name: 'Капля воды', description: 'Здоровье и водный баланс', icon: '💧', play: playWaterDropSound },
   { id: 'flame', name: 'Огонь стрика', description: 'Разжигание серии активности', icon: '🔥', play: playFlameSound },
   { id: 'task', name: 'Выполнение задачи', description: 'Чекбокс закрытия дела', icon: '🎯', play: playTaskCompleteSound },
+  { id: 'bulk', name: 'Массовые действия', description: 'Групповая операция над задачами', icon: '⚡', play: playBulkActionSound },
   { id: 'recurrence', name: 'Цикл повтора', description: 'Перенос повторяющейся задачи', icon: '🔁', play: playRecurrenceSound },
   { id: 'freeze', name: 'Заморозка стрика', description: 'Streak Freeze от выгорания', icon: '❄️', play: playStreakFreezeSound },
   { id: 'shield', name: 'Активация щита', description: 'Защита всех стриков на день', icon: '🛡️', play: playShieldSound },
   { id: 'shield_earned', name: 'Получение щита', description: 'Награда за стрик 7+ дней', icon: '💎', play: playFreezeShieldEarnedSound },
   { id: 'milestone', name: 'Стрик-рекорд', description: 'Рубеж 7, 14, 21, 30 дней', icon: '⚡', play: playStreakMilestoneSound },
   { id: 'badge', name: 'Значок рубежа', description: 'Награда за юбилейный стрик', icon: '🎖️', play: playBadgeUnlockSound },
+  { id: 'aurora', name: 'Северное сияние', description: 'Полярное мерцание и гармония', icon: '✨', play: playAuroraSound },
   { id: 'fanfare', name: 'Ачивка', description: 'Разблокировка трофея', icon: '🎺', play: playAchievementFanfare },
   { id: 'level_up', name: 'Повышение уровня', description: 'Новый ранг и победа', icon: '🏆', play: playLevelUpSound },
   { id: 'timer', name: 'Таймер Помодоро', description: 'Завершение фокус-раунда', icon: '⏱️', play: playTimerCompleteSound },

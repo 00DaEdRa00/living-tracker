@@ -94,6 +94,14 @@ const THEME_OPTIONS: ThemeOption[] = [
     accentColor: '#f59e0b',
     desc: 'Warm Sunset Amber & Ruby (#180d0d)',
   },
+  {
+    id: 'aurora',
+    label: 'Aurora',
+    shortLabel: 'Aurora',
+    icon: '✨',
+    accentColor: '#10b981',
+    desc: 'Polar Night & Aurora Emerald (#08171e)',
+  },
 ];
 
 export const ThemeSelector: React.FC = () => {

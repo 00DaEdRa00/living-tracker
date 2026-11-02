@@ -103,6 +103,16 @@
   --color-accent-glow: 251 191 36;   /* #fbbf24 Warm Gold Glow */
 }
 
+[data-theme='aurora'],
+.theme-aurora {
+  --color-bg-app: 8 23 30;           /* #08171e Deep Polar Arctic Night */
+  --color-bg-surface: 12 36 46;      /* #0c242e */
+  --color-bg-card: 16 48 60;         /* #10303c */
+  --color-border-surface: 20 85 85;  /* #145555 Polar Teal */
+  --color-accent: 16 185 129;        /* #10b981 Aurora Emerald */
+  --color-accent-glow: 6 182 212;    /* #06b6d4 Polar Cyan */
+}
+
 @layer base {
   html,
   body {

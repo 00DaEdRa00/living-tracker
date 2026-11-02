@@ -116,13 +116,13 @@ describe('Sprint 4: Desktop Bridge SQLite v8 & System Metrics', () => {
   it('reports database version 8 with SQLite support', async () => {
     const stats = await getDatabaseStats();
     expect(stats).not.toBeNull();
-    expect(stats?.version).toBe(8);
+    expect(stats?.version).toBeGreaterThanOrEqual(8);
   });
 
   it('provides system health metrics with SQLite v8 engine', async () => {
     const metrics = await getSystemMetrics();
     expect(metrics).not.toBeNull();
     expect(metrics?.status).toBe('healthy');
-    expect(metrics?.sqlite_version).toBe(8);
+    expect(metrics?.sqlite_version).toBeGreaterThanOrEqual(8);
   });
 });

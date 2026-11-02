@@ -4,7 +4,7 @@
 
 export type ToneMode = 'neutral' | 'ironic' | 'sassy';
 
-export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald' | 'synthwave' | 'nord' | 'dracula' | 'tokyo' | 'crimson' | 'matrix' | 'sunset';
+export type AppTheme = 'amoled' | 'cyberpunk' | 'emerald' | 'synthwave' | 'nord' | 'dracula' | 'tokyo' | 'crimson' | 'matrix' | 'sunset' | 'aurora';
 
 export type TransactionType = 'expense' | 'income';
 
@@ -29,6 +29,7 @@ export interface Habit {
   history: string[]; // ISO date strings ('YYYY-MM-DD')
   frozenDates?: string[]; // ISO date strings ('YYYY-MM-DD')
   targetDaysPerWeek?: number; // 1 to 7 target frequency
+  isArchived?: boolean;
   createdAt: string; // ISO date string
 }
 
@@ -57,6 +58,7 @@ export interface Task {
   estimatedMinutes?: number;
   isPinned?: boolean;
   tags?: string[];
+  reminders?: string[];
 }
 
 export interface Budget {
@@ -156,9 +158,15 @@ export interface TrackerActions {
   setBudgetLimit: (monthlyLimit: number) => void;
   addHabit: (habit: Omit<Habit, 'id' | 'streak' | 'completedToday' | 'history' | 'createdAt'> & { id?: string; createdAt?: string }) => void;
   updateHabit: (id: string, updates: Partial<Habit>) => void;
+  archiveHabit: (id: string) => void;
+  unarchiveHabit: (id: string) => void;
   addTask: (task: Omit<Task, 'id' | 'completed' | 'createdAt'> & { id?: string; createdAt?: string }) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   toggleTaskPin: (taskId: string) => void;
+  bulkCompleteTasks: (taskIds: string[]) => void;
+  bulkRescheduleTasks: (taskIds: string[], daysToAdd: number) => void;
+  bulkDeleteTasks: (taskIds: string[]) => void;
+  bulkSetTaskPriority: (taskIds: string[], priority: 'low' | 'medium' | 'high') => void;
   toggleSubtask: (taskId: string, subtaskId: string) => void;
   addSubtask: (taskId: string, title: string) => void;
   removeSubtask: (taskId: string, subtaskId: string) => void;

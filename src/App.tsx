@@ -39,6 +39,7 @@ import TasksSection from './components/TasksSection';
 import HabitsSection from './components/HabitsSection';
 import HudWidget from './components/HudWidget';
 import { DailySummaryShareModal } from './components/DailySummaryShareModal';
+import { WeeklySprintShareModal } from './components/WeeklySprintShareModal';
 import { SoundEffectsModal } from './components/SoundEffectsModal';
 import { PluginSlotRenderer } from './components/PluginSlots';
 import { PluginMarketplace } from './components/PluginMarketplace';
@@ -60,6 +61,7 @@ export const App: React.FC = () => {
   const [isHudPreviewOpen, setIsHudPreviewOpen] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isDailySummaryOpen, setIsDailySummaryOpen] = useState(false);
+  const [isWeeklySprintOpen, setIsWeeklySprintOpen] = useState(false);
   const [isSoundEffectsOpen, setIsSoundEffectsOpen] = useState(false);
   const [language, setLanguage] = useState<SupportedLanguage>('ru');
 
@@ -313,6 +315,20 @@ export const App: React.FC = () => {
             >
               <Share2 className="w-3.5 h-3.5 text-emerald-400" />
               <span className="hidden md:inline">Сводка дня</span>
+            </button>
+
+            {/* Кнопка итогов недельного спринта */}
+            <button
+              type="button"
+              onClick={() => {
+                playClickSound();
+                setIsWeeklySprintOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-surface-card border border-surface-border hover:border-sky-500/50 text-slate-300 hover:text-white text-xs font-bold transition-all cursor-pointer shadow-sm"
+              title="Открыть отчет недельного спринта и экспортировать карточку"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+              <span className="hidden md:inline">Спринт недели</span>
             </button>
 
             {/* Баланс очков / XP */}
@@ -841,6 +857,12 @@ export const App: React.FC = () => {
       <DailySummaryShareModal
         isOpen={isDailySummaryOpen}
         onClose={() => setIsDailySummaryOpen(false)}
+      />
+
+      {/* Модалка недельного спринта и шеринга */}
+      <WeeklySprintShareModal
+        isOpen={isWeeklySprintOpen}
+        onClose={() => setIsWeeklySprintOpen(false)}
       />
 
       {/* Каталог процедурных звуков Web Audio FX */}

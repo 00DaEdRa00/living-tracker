@@ -147,6 +147,21 @@ export async function getSqliteDb() {
     } catch {
       // Index already exists
     }
+    try {
+      await dbInstance.execute("ALTER TABLE habits ADD COLUMN is_archived INTEGER DEFAULT 0");
+    } catch {
+      // Column already exists
+    }
+    try {
+      await dbInstance.execute("ALTER TABLE tasks ADD COLUMN reminders_json TEXT DEFAULT '[]'");
+    } catch {
+      // Column already exists
+    }
+    try {
+      await dbInstance.execute("CREATE INDEX IF NOT EXISTS idx_habits_is_archived ON habits(is_archived)");
+    } catch {
+      // Index already exists
+    }
 
     return dbInstance;
   } catch (err) {

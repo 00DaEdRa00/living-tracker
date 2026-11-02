@@ -714,6 +714,18 @@ export const useTrackerStore = create<TrackerStore>()(
           }));
         },
 
+        archiveHabit: (id) => {
+          setState((state) => ({
+            habits: state.habits.map((h) => (h.id === id ? { ...h, isArchived: true } : h)),
+          }));
+        },
+
+        unarchiveHabit: (id) => {
+          setState((state) => ({
+            habits: state.habits.map((h) => (h.id === id ? { ...h, isArchived: false } : h)),
+          }));
+        },
+
         deleteHabit: (id) => {
           setState((state) => ({
             habits: state.habits.filter((h) => h.id !== id),
@@ -730,6 +742,68 @@ export const useTrackerStore = create<TrackerStore>()(
           setState((state) => ({
             tasks: state.tasks.map((t) =>
               t.id === taskId ? { ...t, isPinned: !t.isPinned } : t
+            ),
+          }));
+        },
+
+        bulkCompleteTasks: (taskIds) => {
+          const now = new Date();
+          const targetIds = new Set(taskIds);
+          const state = getState();
+          const newlyCompleted: { id: string; daysPending: number }[] = [];
+
+          const updatedTasks = state.tasks.map((t) => {
+            if (targetIds.has(t.id) && !t.completed) {
+              let daysPending = 0;
+              if (t.createdAt) {
+                const diffMs = now.getTime() - new Date(t.createdAt).getTime();
+                daysPending = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+              }
+              newlyCompleted.push({ id: t.id, daysPending });
+              return { ...t, completed: true, completedAt: now.toISOString() };
+            }
+            return t;
+          });
+
+          setState({ tasks: updatedTasks });
+
+          newlyCompleted.forEach(({ id, daysPending }) => {
+            const event: AppEvent = {
+              type: 'TASK_COMPLETED',
+              payload: { taskId: id, daysPending },
+            };
+            eventBus.emit(event);
+            checkAchievements(event, getState(), setState);
+          });
+        },
+
+        bulkRescheduleTasks: (taskIds, daysToAdd) => {
+          const targetIds = new Set(taskIds);
+          setState((state) => ({
+            tasks: state.tasks.map((t) => {
+              if (!targetIds.has(t.id)) return t;
+              const baseDate = t.dueDate ? new Date(t.dueDate) : new Date();
+              baseDate.setDate(baseDate.getDate() + daysToAdd);
+              return {
+                ...t,
+                dueDate: baseDate.toISOString(),
+              };
+            }),
+          }));
+        },
+
+        bulkDeleteTasks: (taskIds) => {
+          const targetIds = new Set(taskIds);
+          setState((state) => ({
+            tasks: state.tasks.filter((t) => !targetIds.has(t.id)),
+          }));
+        },
+
+        bulkSetTaskPriority: (taskIds, priority) => {
+          const targetIds = new Set(taskIds);
+          setState((state) => ({
+            tasks: state.tasks.map((t) =>
+              targetIds.has(t.id) ? { ...t, priority } : t
             ),
           }));
         },
